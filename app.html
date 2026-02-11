@@ -933,26 +933,32 @@ window.empezarTest = async function() {
 
 async function obtenerPreguntas() {
     const todas = [];
+    const q = query(collection(db, "temas"), where("usuarioId", "==", currentUser.uid));
+    const snap = await getDocs(q);
+
     if (temasSeleccionados.has('todos')) {
-        const q = query(collection(db, "temas"), where("usuarioId", "==", currentUser.uid));
-        const snap = await getDocs(q);
         snap.forEach(doc => {
             (doc.data().preguntas || []).forEach(p => {
                 if (p.verificada) todas.push({ ...p, temaNombre: doc.data().nombre, temaId: doc.id });
             });
         });
     } else {
-        for (const tId of temasSeleccionados) {
-            const q = query(collection(db, "temas"), where("usuarioId", "==", currentUser.uid));
-            const snap = await getDocs(q);
-            snap.forEach(doc => {
-                if (doc.id === tId) {
-                    (doc.data().preguntas || []).forEach(p => {
-                        if (p.verificada) todas.push({ ...p, temaNombre: doc.data().nombre, temaId: doc.id });
-                    });
-                }
-            });
-        }
+        // Construir set expandido: si seleccionas un padre, incluir sus subtemas
+        const idsExpandidos = new Set(temasSeleccionados);
+        snap.forEach(doc => {
+            const t = doc.data();
+            if (t.temaPadreId && idsExpandidos.has(t.temaPadreId)) {
+                idsExpandidos.add(doc.id);
+            }
+        });
+
+        snap.forEach(doc => {
+            if (idsExpandidos.has(doc.id)) {
+                (doc.data().preguntas || []).forEach(p => {
+                    if (p.verificada) todas.push({ ...p, temaNombre: doc.data().nombre, temaId: doc.id });
+                });
+            }
+        });
     }
     // Eliminar duplicados por texto
     const vistos = new Set();
