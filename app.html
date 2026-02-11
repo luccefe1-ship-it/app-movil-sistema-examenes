@@ -156,6 +156,39 @@
             padding: 3px 8px;
             border-radius: 20px;
         }
+        .tema-padre-row {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+        .tema-padre-row .tema-item {
+            flex: 1;
+            min-width: 0;
+        }
+        .btn-expand {
+            background: var(--surface2);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 14px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            margin-left: 4px;
+        }
+        .btn-expand:active { transform: scale(0.9); }
+        .btn-expand .arrow { transition: transform 0.2s; display: inline-block; }
+        .btn-expand.expanded .arrow { transform: rotate(180deg); }
+        .subtemas-collapsible {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .subtemas-collapsible.expanded {
+            max-height: 2000px;
+        }
         .subtema-item {
             margin-left: 16px;
             border-left: 2px solid var(--surface3);
@@ -163,6 +196,24 @@
         }
         .subtema-item .tema-item {
             background: var(--bg);
+        }
+        .btn-ultima-seleccion {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: var(--surface2);
+            border: 2px dashed var(--accent);
+            border-radius: 12px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: none;
+        }
+        .btn-ultima-seleccion:active {
+            transform: scale(0.97);
+            background: rgba(59,130,246,0.1);
         }
 
         /* CANTIDAD BUTTONS */
@@ -671,14 +722,12 @@ async function cargarTemas() {
         }
     });
 
-    // Sumar preguntas de subtemas
     principales.forEach(t => {
         if (subtemasPorPadre[t.id]) {
             t.pvTotal += subtemasPorPadre[t.id].reduce((s, st) => s + st.pv, 0);
         }
     });
 
-    // Ordenar
     principales.sort((a, b) => {
         const na = a.nombre.match(/\d+/), nb = b.nombre.match(/\d+/);
         if (na && nb) return parseInt(na[0]) - parseInt(nb[0]);
@@ -688,6 +737,15 @@ async function cargarTemas() {
     temasData = [];
     const container = document.getElementById('temaList');
     container.innerHTML = '';
+
+    // Botón última selección
+    const ultimaSel = localStorage.getItem('ultimaSeleccionTemas');
+    const btnUltima = document.createElement('button');
+    btnUltima.className = 'btn-ultima-seleccion';
+    btnUltima.textContent = '🔄 Usar última selección de temas';
+    if (ultimaSel) btnUltima.style.display = 'block';
+    btnUltima.onclick = () => aplicarUltimaSeleccion();
+    container.appendChild(btnUltima);
 
     // Opción "Todos"
     const todosDiv = document.createElement('div');
@@ -700,14 +758,37 @@ async function cargarTemas() {
 
     principales.forEach(t => {
         temasData.push(t);
-        const div = document.createElement('div');
-        div.className = 'tema-item';
-        div.dataset.id = t.id;
-        div.innerHTML = `<span class="tema-item-name">${t.nombre}</span><span class="tema-item-count">${t.pvTotal}</span>`;
-        div.onclick = () => seleccionarTema(div, t.id);
-        container.appendChild(div);
+        const tieneSubtemas = subtemasPorPadre[t.id] && subtemasPorPadre[t.id].length > 0;
 
-        if (subtemasPorPadre[t.id]) {
+        if (tieneSubtemas) {
+            // Fila padre con botón expand
+            const row = document.createElement('div');
+            row.className = 'tema-padre-row';
+
+            const div = document.createElement('div');
+            div.className = 'tema-item';
+            div.dataset.id = t.id;
+            div.innerHTML = `<span class="tema-item-name">${t.nombre}</span><span class="tema-item-count">${t.pvTotal}</span>`;
+            div.onclick = () => seleccionarTema(div, t.id);
+
+            const btnExp = document.createElement('button');
+            btnExp.className = 'btn-expand';
+            btnExp.innerHTML = '<span class="arrow">▼</span>';
+            
+            // Contenedor subtemas colapsable
+            const subContainer = document.createElement('div');
+            subContainer.className = 'subtemas-collapsible';
+
+            btnExp.onclick = (e) => {
+                e.stopPropagation();
+                btnExp.classList.toggle('expanded');
+                subContainer.classList.toggle('expanded');
+            };
+
+            row.appendChild(div);
+            row.appendChild(btnExp);
+            container.appendChild(row);
+
             subtemasPorPadre[t.id].forEach(st => {
                 temasData.push(st);
                 const wrapper = document.createElement('div');
@@ -718,10 +799,58 @@ async function cargarTemas() {
                 sdiv.innerHTML = `<span class="tema-item-name">↳ ${st.nombre}</span><span class="tema-item-count">${st.pv}</span>`;
                 sdiv.onclick = () => seleccionarTema(sdiv, st.id);
                 wrapper.appendChild(sdiv);
-                container.appendChild(wrapper);
+                subContainer.appendChild(wrapper);
             });
+
+            container.appendChild(subContainer);
+        } else {
+            // Tema sin subtemas, igual que antes
+            const div = document.createElement('div');
+            div.className = 'tema-item';
+            div.dataset.id = t.id;
+            div.innerHTML = `<span class="tema-item-name">${t.nombre}</span><span class="tema-item-count">${t.pvTotal}</span>`;
+            div.onclick = () => seleccionarTema(div, t.id);
+            container.appendChild(div);
         }
     });
+}
+
+function aplicarUltimaSeleccion() {
+    const guardada = localStorage.getItem('ultimaSeleccionTemas');
+    if (!guardada) return;
+    const ids = JSON.parse(guardada);
+
+    // Deseleccionar todo
+    document.querySelectorAll('.tema-item').forEach(d => d.classList.remove('selected'));
+    temasSeleccionados.clear();
+
+    if (ids.includes('todos')) {
+        const todosEl = document.querySelector('[data-id="todos"]');
+        if (todosEl) todosEl.classList.add('selected');
+        temasSeleccionados.add('todos');
+        return;
+    }
+
+    ids.forEach(id => {
+        const el = document.querySelector(`[data-id="${id}"]`);
+        if (el) {
+            el.classList.add('selected');
+            temasSeleccionados.add(id);
+            // Auto-expandir el padre si es subtema
+            const subContainer = el.closest('.subtemas-collapsible');
+            if (subContainer) {
+                subContainer.classList.add('expanded');
+                const btnExp = subContainer.previousElementSibling?.querySelector('.btn-expand');
+                if (btnExp) btnExp.classList.add('expanded');
+            }
+        }
+    });
+
+    if (temasSeleccionados.size === 0) {
+        const todosEl = document.querySelector('[data-id="todos"]');
+        if (todosEl) todosEl.classList.add('selected');
+        temasSeleccionados.add('todos');
+    }
 }
 
 window.seleccionarTema = function(el, id) {
@@ -761,6 +890,9 @@ window.seleccionarCantidad = function(btn) {
 window.empezarTest = async function() {
     const nombre = document.getElementById('nombreTest').value.trim();
     if (!nombre) { alert('Escribe un nombre para el test'); return; }
+
+    // Guardar última selección de temas
+    localStorage.setItem('ultimaSeleccionTemas', JSON.stringify(Array.from(temasSeleccionados)));
 
     const preguntas = await obtenerPreguntas();
     if (preguntas.length === 0) { alert('No hay preguntas verificadas en los temas seleccionados'); return; }
@@ -824,7 +956,9 @@ async function obtenerPreguntas() {
 function mezclar(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const buf = new Uint32Array(1);
+        crypto.getRandomValues(buf);
+        const j = buf[0] % (i + 1);
         [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
