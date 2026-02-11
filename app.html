@@ -514,6 +514,17 @@
         .hist-nombre { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
         .hist-fecha { font-size: 12px; color: var(--muted); }
         .hist-tema { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .btn-borrar-test {
+            background: none;
+            border: none;
+            color: var(--danger);
+            font-size: 18px;
+            padding: 8px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .btn-borrar-test:active { opacity: 1; transform: scale(1.2); }
 
         .empty-state {
             text-align: center;
@@ -653,7 +664,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, where, getDocs, addDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs, addDoc, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { firebaseConfig } from './firebase-config.js';
 
 const app = initializeApp(firebaseConfig);
@@ -1147,7 +1158,7 @@ async function cargarHistorial() {
         });
 
         container.innerHTML = '';
-        resultados.forEach(({ data: r }) => {
+        resultados.forEach(({ id, data: r }) => {
             const fecha = r.fechaCreacion?.seconds ? new Date(r.fechaCreacion.seconds * 1000) : new Date();
             const pct = r.porcentaje || 0;
             let cls = pct >= 70 ? 'bueno' : pct >= 50 ? 'medio' : 'malo';
@@ -1160,12 +1171,36 @@ async function cargarHistorial() {
                     <div class="hist-nombre">${r.test?.nombre || 'Test'}</div>
                     <div class="hist-fecha">${fecha.toLocaleDateString('es-ES')} · ${fecha.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'})}</div>
                 </div>
+                <button class="btn-borrar-test" data-id="${id}">🗑️</button>
             `;
+            item.querySelector('.btn-borrar-test').onclick = (e) => {
+                e.stopPropagation();
+                borrarResultado(id, item);
+            };
             container.appendChild(item);
         });
     } catch (e) {
         console.error(e);
         container.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Error cargando historial</p></div>';
+    }
+}
+
+async function borrarResultado(docId, elemento) {
+    if (!confirm('¿Eliminar este resultado?')) return;
+    try {
+        await deleteDoc(doc(db, "resultados", docId));
+        elemento.style.transition = 'opacity 0.3s, transform 0.3s';
+        elemento.style.opacity = '0';
+        elemento.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            elemento.remove();
+            if (!document.querySelector('.historial-item')) {
+                document.getElementById('historialList').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>Todavía no has hecho ningún test</p></div>';
+            }
+        }, 300);
+    } catch (e) {
+        console.error(e);
+        alert('Error al eliminar');
     }
 }
 </script>
