@@ -124,14 +124,6 @@ function crearElementoTema(tema, subtemas) {
                         checkboxSubtema.dispatchEvent(new Event('change'));
                     }
                 });
-                // TAMBIÉN agregar el tema padre a la lista para poder marcarlo después
-                if (!subtemasSeleccionados.find(s => s.id === tema.id)) {
-                    subtemasSeleccionados.push({
-                        id: tema.id,
-                        nombre: tema.nombre,
-                        esTemaCompleto: true // Flag para identificarlo
-                    });
-                }
             } else if (cantidadPreguntasTema > 0) {
                 // Si no tiene subtemas pero sí preguntas, agregar el tema
                 subtemasSeleccionados.push({
@@ -150,8 +142,6 @@ function crearElementoTema(tema, subtemas) {
                         checkboxSubtema.dispatchEvent(new Event('change'));
                     }
                 });
-                // Remover también el tema padre
-                subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== tema.id);
             } else {
                 subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== tema.id);
             }
@@ -186,6 +176,11 @@ function crearElementoTema(tema, subtemas) {
                     });
                 } else {
                     subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== subtema.id);
+                    // Si se desmarca un subtema, desmarcar también el tema padre
+                    const checkboxTema = temaDiv.querySelector('input[data-tema-id]');
+                    if (checkboxTema) {
+                        checkboxTema.checked = false;
+                    }
                 }
             });
 
@@ -196,14 +191,19 @@ function crearElementoTema(tema, subtemas) {
         subtemasDiv.style.display = 'none';
         temaDiv.appendChild(subtemasDiv);
         
-        // Click en tema header para expandir/contraer
-        temaHeader.style.cursor = 'pointer';
-        temaHeader.addEventListener('click', () => {
-            const isVisible = subtemasDiv.style.display !== 'none';
-            subtemasDiv.style.display = isVisible ? 'none' : 'block';
-            const icon = temaHeader.querySelector('.toggle-icon');
-            icon.textContent = isVisible ? '▶' : '▼';
-        });
+        // Click en tema header para expandir/contraer (solo en el ícono)
+        const toggleIcon = temaHeader.querySelector('.toggle-icon');
+        if (toggleIcon) {
+            toggleIcon.parentElement.style.cursor = 'pointer';
+            toggleIcon.parentElement.addEventListener('click', (e) => {
+                // Solo si no se hizo click en el checkbox o label
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
+                    const isVisible = subtemasDiv.style.display !== 'none';
+                    subtemasDiv.style.display = isVisible ? 'none' : 'block';
+                    toggleIcon.textContent = isVisible ? '▶' : '▼';
+                }
+            });
+        }
     }
 
     return temaDiv;
@@ -265,19 +265,14 @@ function repetirUltimosParametros() {
     const parametros = JSON.parse(localStorage.getItem('ultimosParametros'));
     if (!parametros) return;
 
-    // Nombre inteligente para repeticiones
-    let nuevoNombre = parametros.nombre;
-    
-    // Eliminar TODOS los sufijos previos (repetido) y repetidoxN
-    nuevoNombre = nuevoNombre.replace(/\s*\(repetido\)/g, '').replace(/\s*repetidox\d+$/g, '').trim();
-    
-    // Agregar " (repetido)" siempre
+    // Nombre: quitar TODOS los "(repetido)" y agregar solo UNO
+    let nuevoNombre = parametros.nombre.replace(/\s*\(repetido\)\s*/g, '').trim();
     nuevoNombre = nuevoNombre + ' (repetido)';
-    
     document.getElementById('nombreTest').value = nuevoNombre;
+    
     cantidadSeleccionada = parametros.cantidad;
 
-    // Primero expandir todos los temas para que los checkboxes estén disponibles
+    // Expandir todos los temas
     document.querySelectorAll('.subtemas-list').forEach(list => {
         list.style.display = 'block';
     });
@@ -285,9 +280,9 @@ function repetirUltimosParametros() {
         icon.textContent = '▼';
     });
 
-    // Esperar un momento para que el DOM se actualice
+    // Esperar a que el DOM se actualice
     setTimeout(() => {
-        // 1. Marcar subtemas
+        // Marcar subtemas
         parametros.subtemas.forEach(subtemaId => {
             const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
             if (checkboxSubtema && !checkboxSubtema.checked) {
@@ -295,31 +290,32 @@ function repetirUltimosParametros() {
                 checkboxSubtema.dispatchEvent(new Event('change'));
             }
             
-            // Por si es tema sin subtemas
             const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
             if (checkboxTema && !checkboxTema.checked) {
                 checkboxTema.checked = true;
             }
         });
         
-        // 2. Marcar temas padre si TODOS sus subtemas están marcados
+        // Marcar temas padre si TODOS sus subtemas están marcados
         setTimeout(() => {
             document.querySelectorAll('.tema-item').forEach(temaItem => {
                 const checkboxTema = temaItem.querySelector('input[data-tema-id]');
                 if (!checkboxTema) return;
                 
-                const checkboxesSubtemas = Array.from(temaItem.querySelectorAll('.subtemas-list input[data-subtema-id]'));
+                const subtemasDiv = temaItem.querySelector('.subtemas-list');
+                if (!subtemasDiv) return;
                 
+                const checkboxesSubtemas = Array.from(subtemasDiv.querySelectorAll('input[data-subtema-id]'));
                 if (checkboxesSubtemas.length === 0) return;
                 
                 const todosEstanMarcados = checkboxesSubtemas.every(cb => cb.checked);
                 
-                if (todosEstanMarcados) {
+                if (todosEstanMarcados && !checkboxTema.checked) {
                     checkboxTema.checked = true;
                 }
             });
-        }, 150);
-    }, 250);
+        }, 100);
+    }, 200);
 
     // Marcar cantidad
     const btnCantidad = document.querySelector(`[data-cantidad="${parametros.cantidad}"]`);
