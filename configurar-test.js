@@ -258,22 +258,54 @@ function repetirUltimosParametros() {
     document.getElementById('nombreTest').value = parametros.nombre + ' (repetido)';
     cantidadSeleccionada = parametros.cantidad;
 
-    // Marcar los subtemas Y temas
-    parametros.subtemas.forEach(subtemaId => {
-        // Buscar checkbox de subtema
-        const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
-        if (checkboxSubtema) {
-            checkboxSubtema.checked = true;
-            checkboxSubtema.dispatchEvent(new Event('change'));
-        }
-        
-        // Buscar checkbox de tema padre
-        const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
-        if (checkboxTema) {
-            checkboxTema.checked = true;
-            checkboxTema.dispatchEvent(new Event('change'));
-        }
+    // Primero expandir todos los temas para que los checkboxes estén disponibles
+    document.querySelectorAll('.subtemas-list').forEach(list => {
+        list.style.display = 'block';
     });
+    document.querySelectorAll('.toggle-icon').forEach(icon => {
+        icon.textContent = '▼';
+    });
+
+    // Esperar un momento para que el DOM se actualice
+    setTimeout(() => {
+        // Marcar los subtemas y temas
+        parametros.subtemas.forEach(subtemaId => {
+            // Buscar checkbox de subtema
+            const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
+            if (checkboxSubtema && !checkboxSubtema.checked) {
+                checkboxSubtema.checked = true;
+                checkboxSubtema.dispatchEvent(new Event('change'));
+            }
+            
+            // Buscar checkbox de tema padre
+            const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
+            if (checkboxTema && !checkboxTema.checked) {
+                checkboxTema.checked = true;
+                checkboxTema.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        // Verificar temas padre: si todos sus subtemas están marcados, marcar el tema
+        temasDisponibles.forEach(tema => {
+            const checkboxTema = document.querySelector(`input[data-tema-id="${tema.id}"]`);
+            if (!checkboxTema) return;
+            
+            const subtemasDeTema = document.querySelectorAll(`input[data-subtema-id]`);
+            let todosSubtemasDelTema = [];
+            subtemasDeTema.forEach(checkbox => {
+                const subtemaId = checkbox.getAttribute('data-subtema-id');
+                // Verificar si este subtema pertenece a este tema
+                if (parametros.subtemas.includes(subtemaId)) {
+                    todosSubtemasDelTema.push(subtemaId);
+                }
+            });
+            
+            // Si hay subtemas de este tema seleccionados, marcar el tema padre
+            if (todosSubtemasDelTema.length > 0 && !checkboxTema.checked) {
+                checkboxTema.checked = true;
+            }
+        });
+    }, 100);
 
     // Marcar cantidad
     const btnCantidad = document.querySelector(`[data-cantidad="${parametros.cantidad}"]`);
