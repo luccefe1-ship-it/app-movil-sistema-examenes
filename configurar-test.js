@@ -55,6 +55,14 @@ async function cargarTemas() {
         console.log('Temas principales:', temasPrincipales.length);
         console.log('Subtemas totales:', Array.from(subtemasMap.values()).flat().length);
 
+        // Ordenar temas alfabéticamente
+        temasPrincipales.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        
+        // Ordenar subtemas dentro de cada tema
+        subtemasMap.forEach((subtemas) => {
+            subtemas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        });
+
         if (temasPrincipales.length === 0) {
             listaTemas.innerHTML = '<p style="color: white; text-align: center; padding: 20px;">No tienes temas creados en la plataforma de escritorio.<br><br>Crea temas y preguntas en:<br><a href="https://plataforma-examenes-f2df9.web.app" style="color: white; text-decoration: underline;">plataforma-examenes-f2df9.web.app</a></p>';
             return;
@@ -240,7 +248,13 @@ async function iniciarTest() {
     subtemasSeleccionados.forEach(subtema => {
         const preguntasVerificadas = (subtema.preguntas || []).filter(p => p.verificada);
         preguntasDisponibles.push(...preguntasVerificadas.map(p => ({
-            ...p,
+            texto: p.question || p.texto,
+            opciones: p.options || p.opciones,
+            respuestaCorrecta: p.correctAnswer !== undefined ? p.correctAnswer : p.respuestaCorrecta,
+            explicacion: p.explanation || p.explicacion || '',
+            explicacionGemini: p.explicacionGemini || '',
+            explicacionPDF: p.explicacionPDF || '',
+            verificada: true,
             subtemaId: subtema.id,
             subtemaNombre: subtema.nombre
         })));
