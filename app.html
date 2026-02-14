@@ -859,20 +859,6 @@
     </button>
 </nav>
 
-<script>
-// FORZAR LIMPIEZA TOTAL
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-        return Promise.all(regs.map(reg => reg.unregister()));
-    }).then(() => {
-        return caches.keys();
-    }).then(keys => {
-        return Promise.all(keys.map(key => caches.delete(key)));
-    }).then(() => {
-        console.log('Cache limpiada v7');
-    });
-}
-</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
