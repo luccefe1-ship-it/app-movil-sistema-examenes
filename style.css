@@ -260,6 +260,16 @@ main {
     background: #f0f4ff;
 }
 
+.opcion-btn.correcta {
+    border-color: #10b981;
+    background: #d1fae5;
+}
+
+.opcion-btn.incorrecta {
+    border-color: #ef4444;
+    background: #fee2e2;
+}
+
 .header-test {
     background: white;
     padding: 15px;
