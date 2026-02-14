@@ -177,7 +177,9 @@ function calcularResultado() {
             esCorrecta: esCorrecta,
             esBlanco: esBlanco,
             explicacion: pregunta.explicacion || null,
-            subtema: pregunta.subtemaNombre || 'Sin subtema'
+explicacionGemini: pregunta.explicacionGemini || null,
+explicacionPDF: pregunta.explicacionPDF || null,
+subtema: pregunta.subtemaNombre || 'Sin subtema'
         };
     });
     
