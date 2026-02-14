@@ -88,13 +88,49 @@ function crearElementoTema(tema, subtemas) {
     const temaDiv = document.createElement('div');
     temaDiv.className = 'tema-item';
 
-    // Header del tema (solo visual, no seleccionable si tiene subtemas)
+    const cantidadPreguntasTema = tema.preguntas?.filter(p => p.verificada)?.length || 0;
+    
+    // Si tiene subtemas, mostrar número de subtemas
+    // Si NO tiene subtemas pero SÍ preguntas, mostrar número de preguntas
+    let infoExtra = '';
+    if (subtemas.length > 0) {
+        infoExtra = `${subtemas.length} subtemas <span class="toggle-icon">▶</span>`;
+    } else if (cantidadPreguntasTema > 0) {
+        infoExtra = `${cantidadPreguntasTema}`;
+    }
+
+    // Header del tema
     const temaHeader = document.createElement('div');
     temaHeader.className = 'tema-header';
-    temaHeader.innerHTML = `
-        <span style="font-weight: 600; flex: 1;">${tema.nombre}</span>
-        <span style="color: #999; font-size: 14px;">${subtemas.length} subtemas <span class="toggle-icon">▶</span></span>
-    `;
+    
+    // Si NO tiene subtemas pero SÍ preguntas, hacerlo seleccionable
+    if (subtemas.length === 0 && cantidadPreguntasTema > 0) {
+        temaHeader.innerHTML = `
+            <input type="checkbox" id="tema-${tema.id}" data-tema-id="${tema.id}">
+            <label for="tema-${tema.id}" style="flex: 1; cursor: pointer; font-weight: 600;">
+                ${tema.nombre}
+            </label>
+            <span style="color: #999; font-size: 14px;">${infoExtra}</span>
+        `;
+        
+        temaHeader.querySelector('input').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                subtemasSeleccionados.push({
+                    id: tema.id,
+                    nombre: tema.nombre,
+                    preguntas: tema.preguntas || []
+                });
+            } else {
+                subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== tema.id);
+            }
+        });
+    } else {
+        temaHeader.innerHTML = `
+            <span style="font-weight: 600; flex: 1;">${tema.nombre}</span>
+            <span style="color: #999; font-size: 14px;">${infoExtra}</span>
+        `;
+    }
+    
     temaDiv.appendChild(temaHeader);
 
     // Lista de subtemas (seleccionables)
@@ -110,7 +146,7 @@ function crearElementoTema(tema, subtemas) {
             subtemaDiv.innerHTML = `
                 <input type="checkbox" id="subtema-${subtema.id}" data-subtema-id="${subtema.id}">
                 <label for="subtema-${subtema.id}" style="flex: 1; cursor: pointer;">
-                    ${subtema.nombre} <span style="color: #999;">(${cantidadPreguntas} preguntas)</span>
+                    ${subtema.nombre} <span style="color: #999;">(${cantidadPreguntas})</span>
                 </label>
             `;
 
