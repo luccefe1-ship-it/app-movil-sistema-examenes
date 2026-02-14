@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explicaciones</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#667eea">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="btn-back" onclick="window.location.href='index.html'">← Volver</button>
+            <h1>💡 Mis Explicaciones</h1>
+        </header>
+
+        <main>
+            <div class="buscar-explicacion">
+                <input type="text" id="buscarExplicacion" placeholder="Buscar explicación...">
+            </div>
+
+            <div id="listaExplicaciones">
+                <p class="loading">Cargando explicaciones...</p>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="explicaciones.js"></script>
+</body>
+</html>
