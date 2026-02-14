@@ -268,22 +268,11 @@ function repetirUltimosParametros() {
     // Nombre inteligente para repeticiones
     let nuevoNombre = parametros.nombre;
     
-    // Buscar si ya tiene " repetidoxN"
-    const matchRepetidoX = nuevoNombre.match(/\s+repetidox(\d+)$/);
-    // Buscar si tiene " (repetido)"
-    const matchRepetido = nuevoNombre.match(/\s+\(repetido\)$/);
+    // Eliminar TODOS los sufijos previos (repetido) y repetidoxN
+    nuevoNombre = nuevoNombre.replace(/\s*\(repetido\)/g, '').replace(/\s*repetidox\d+$/g, '').trim();
     
-    if (matchRepetidoX) {
-        // Ya tiene "repetidoxN", incrementar el número
-        const numero = parseInt(matchRepetidoX[1]) + 1;
-        nuevoNombre = nuevoNombre.replace(/\s+repetidox\d+$/, ` repetidox${numero}`);
-    } else if (matchRepetido) {
-        // Tiene " (repetido)", cambiar a "repetidox2"
-        nuevoNombre = nuevoNombre.replace(/\s+\(repetido\)$/, ' repetidox2');
-    } else {
-        // Primera repetición, agregar " (repetido)"
-        nuevoNombre = nuevoNombre + ' (repetido)';
-    }
+    // Agregar " (repetido)" siempre
+    nuevoNombre = nuevoNombre + ' (repetido)';
     
     document.getElementById('nombreTest').value = nuevoNombre;
     cantidadSeleccionada = parametros.cantidad;
@@ -298,42 +287,39 @@ function repetirUltimosParametros() {
 
     // Esperar un momento para que el DOM se actualice
     setTimeout(() => {
-        // Primero marcar los subtemas
+        // 1. Marcar subtemas
         parametros.subtemas.forEach(subtemaId => {
-            // Buscar checkbox de subtema
             const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
             if (checkboxSubtema && !checkboxSubtema.checked) {
                 checkboxSubtema.checked = true;
                 checkboxSubtema.dispatchEvent(new Event('change'));
             }
             
-            // Buscar checkbox de tema padre (por si es un tema sin subtemas)
+            // Por si es tema sin subtemas
             const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
             if (checkboxTema && !checkboxTema.checked) {
                 checkboxTema.checked = true;
             }
         });
         
-        // AHORA marcar temas padre cuyos subtemas estén TODOS seleccionados
+        // 2. Marcar temas padre si TODOS sus subtemas están marcados
         setTimeout(() => {
-            document.querySelectorAll('input[data-tema-id]').forEach(checkboxTema => {
-                const temaItem = checkboxTema.closest('.tema-item');
-                if (!temaItem) return;
+            document.querySelectorAll('.tema-item').forEach(temaItem => {
+                const checkboxTema = temaItem.querySelector('input[data-tema-id]');
+                if (!checkboxTema) return;
                 
-                // Buscar todos los checkboxes de subtemas DENTRO de este tema
-                const checkboxesSubtemas = Array.from(temaItem.querySelectorAll('input[data-subtema-id]'));
+                const checkboxesSubtemas = Array.from(temaItem.querySelectorAll('.subtemas-list input[data-subtema-id]'));
                 
-                if (checkboxesSubtemas.length === 0) return; // No tiene subtemas
+                if (checkboxesSubtemas.length === 0) return;
                 
-                // Verificar si TODOS están marcados
                 const todosEstanMarcados = checkboxesSubtemas.every(cb => cb.checked);
                 
                 if (todosEstanMarcados) {
                     checkboxTema.checked = true;
                 }
             });
-        }, 100);
-    }, 200);
+        }, 150);
+    }, 250);
 
     // Marcar cantidad
     const btnCantidad = document.querySelector(`[data-cantidad="${parametros.cantidad}"]`);
