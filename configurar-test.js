@@ -55,12 +55,12 @@ async function cargarTemas() {
         console.log('Temas principales:', temasPrincipales.length);
         console.log('Subtemas totales:', Array.from(subtemasMap.values()).flat().length);
 
-        // Ordenar temas alfabéticamente
-        temasPrincipales.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        // Ordenar temas alfabéticamente con orden natural (números)
+        temasPrincipales.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }));
         
         // Ordenar subtemas dentro de cada tema
         subtemasMap.forEach((subtemas) => {
-            subtemas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            subtemas.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }));
         });
 
         if (temasPrincipales.length === 0) {
