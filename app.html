@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Priii!</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="icon" href="icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg: #0a0f1e;
+            --surface: #111827;
+            --surface2: #1e2a3a;
+            --surface3: #243044;
+            --accent: #3b82f6;
+            --accent2: #6366f1;
+            --text: #f1f5f9;
+            --muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-actions { display: flex; gap: 8px; }
+        .btn-refresh, .btn-logout {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn-refresh { color: var(--accent); }
+        .btn-logout { color: var(--muted); }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            z-index: 100;
+        }
+        .nav-btn {
+            flex: 1;
+            padding: 12px 8px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 11px;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .nav-btn.active { color: var(--accent); }
+        .nav-btn .icon { font-size: 20px; }
+
+        .screen { display: none; padding: 20px; }
+        .screen.active { display: block; }
+
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .section-sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 14px;
+        }
+
+        .tema-list { display: flex; flex-direction: column; gap: 8px; }
+        .tema-item {
+            background: var(--surface2);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .tema-item.selected {
+            border-color: var(--accent);
+            background: rgba(59,130,246,0.1);
+        }
+        .tema-item-name { font-size: 14px; font-weight: 500; }
+        .tema-item-count {
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--surface3);
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+
+        .cantidad-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .btn-cantidad {
+            background: var(--surface2);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 14px 8px;
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-cantidad.selected {
+            border-color: var(--accent);
+            background: rgba(59,130,246,0.1);
+            color: var(--accent);
+        }
+
+        .nombre-input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--text);
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+        }
+        .nombre-input:focus { border-color: var(--accent); }
+
+        .btn-empezar {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            border: none;
+            border-radius: 14px;
+            padding: 18px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-empezar:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .spinner-container {
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--surface2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state p { font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-logo">💥 Priii!</div>
+    <div class="header-actions">
+        <button class="btn-refresh" onclick="recargarDatos()">🔄</button>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
+</div>
+
+<div class="screen active" id="configScreen">
+    <div class="section-title">Nuevo Test</div>
+    <div class="section-sub">Configura tu práctica</div>
+
+    <div class="card">
+        <div class="card-title">Nombre del test</div>
+        <input type="text" class="nombre-input" id="nombreTest" placeholder="Ej: Práctica tema 3">
+    </div>
+
+    <div class="card">
+        <div class="card-title">Tema</div>
+        <div class="tema-list" id="temaList">
+            <div class="spinner-container"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Número de preguntas</div>
+        <div class="cantidad-grid">
+            <button class="btn-cantidad selected" data-n="10" onclick="seleccionarCantidad(this)">10</button>
+            <button class="btn-cantidad" data-n="20" onclick="seleccionarCantidad(this)">20</button>
+            <button class="btn-cantidad" data-n="30" onclick="seleccionarCantidad(this)">30</button>
+            <button class="btn-cantidad" data-n="50" onclick="seleccionarCantidad(this)">50</button>
+        </div>
+    </div>
+
+    <button class="btn-empezar" onclick="empezarTest()">Empezar Test</button>
+</div>
+
+<div class="screen" id="historialScreen">
+    <div class="section-title">Historial</div>
+    <div class="section-sub">Tus tests realizados</div>
+    <div id="historialList">
+        <div class="empty-state">
+            <div class="icon">📋</div>
+            <p>No hay tests realizados</p>
+        </div>
+    </div>
+</div>
+
+<nav class="bottom-nav">
+    <button class="nav-btn active" id="navTest" onclick="goTo('test')">
+        <span class="icon">✏️</span>
+        <span>Test</span>
+    </button>
+    <button class="nav-btn" id="navHistorial" onclick="goTo('historial')">
+        <span class="icon">📋</span>
+        <span>Historial</span>
+    </button>
+</nav>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { firebaseConfig } from './firebase-config.js';
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let temasData = [];
+let temasSeleccionados = new Set(['todos']);
+let cantidadSeleccionada = 10;
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = 'index.html'; return; }
+    currentUser = user;
+    await cargarDatos();
+});
+
+window.logout = async function() {
+    await signOut(auth);
+    window.location.href = 'index.html';
+};
+
+window.goTo = function(tab) {
+    document.getElementById('navTest').classList.remove('active');
+    document.getElementById('navHistorial').classList.remove('active');
+    document.getElementById('configScreen').classList.remove('active');
+    document.getElementById('historialScreen').classList.remove('active');
+
+    if (tab === 'test') {
+        document.getElementById('navTest').classList.add('active');
+        document.getElementById('configScreen').classList.add('active');
+    } else {
+        document.getElementById('navHistorial').classList.add('active');
+        document.getElementById('historialScreen').classList.add('active');
+    }
+};
+
+async function cargarDatos() {
+    const q = query(collection(db, "temas"), where("usuarioId", "==", currentUser.uid));
+    const snap = await getDocs(q);
+
+    temasData = [];
+    snap.forEach(doc => {
+        const t = doc.data();
+        const preguntasVerificadas = (t.preguntas || []).filter(p => p.verificada).length;
+        temasData.push({
+            id: doc.id,
+            nombre: t.nombre,
+            preguntas: t.preguntas || [],
+            count: preguntasVerificadas
+        });
+    });
+
+    temasData.sort((a, b) => {
+        const na = a.nombre.match(/\d+/);
+        const nb = b.nombre.match(/\d+/);
+        if (na && nb) return parseInt(na[0]) - parseInt(nb[0]);
+        return a.nombre.localeCompare(b.nombre);
+    });
+
+    renderizarTemas();
+}
+
+function renderizarTemas() {
+    const container = document.getElementById('temaList');
+    container.innerHTML = '';
+
+    const todosDiv = document.createElement('div');
+    todosDiv.className = 'tema-item selected';
+    todosDiv.dataset.id = 'todos';
+    todosDiv.innerHTML = `<span class="tema-item-name">📚 Todos los temas</span><span class="tema-item-count">todas</span>`;
+    todosDiv.onclick = () => seleccionarTema(todosDiv, 'todos');
+    container.appendChild(todosDiv);
+
+    temasData.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'tema-item';
+        div.dataset.id = t.id;
+        div.innerHTML = `<span class="tema-item-name">${t.nombre}</span><span class="tema-item-count">${t.count}</span>`;
+        div.onclick = () => seleccionarTema(div, t.id);
+        container.appendChild(div);
+    });
+}
+
+window.seleccionarTema = function(el, id) {
+    if (id === 'todos') {
+        document.querySelectorAll('.tema-item').forEach(d => d.classList.remove('selected'));
+        el.classList.add('selected');
+        temasSeleccionados = new Set(['todos']);
+    } else {
+        const todosEl = document.querySelector('[data-id="todos"]');
+        if (todosEl) todosEl.classList.remove('selected');
+        temasSeleccionados.delete('todos');
+
+        if (el.classList.contains('selected')) {
+            el.classList.remove('selected');
+            temasSeleccionados.delete(id);
+        } else {
+            el.classList.add('selected');
+            temasSeleccionados.add(id);
+        }
+
+        if (temasSeleccionados.size === 0) {
+            if (todosEl) todosEl.classList.add('selected');
+            temasSeleccionados.add('todos');
+        }
+    }
+};
+
+window.seleccionarCantidad = function(btn) {
+    document.querySelectorAll('.btn-cantidad').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    cantidadSeleccionada = parseInt(btn.dataset.n);
+};
+
+window.empezarTest = function() {
+    const nombre = document.getElementById('nombreTest').value.trim();
+    if (!nombre) { alert('Escribe un nombre para el test'); return; }
+
+    const preguntas = obtenerPreguntas();
+    if (preguntas.length === 0) { alert('No hay preguntas verificadas'); return; }
+
+    alert(`Test "${nombre}" con ${Math.min(cantidadSeleccionada, preguntas.length)} preguntas\n\nPróximamente: pantalla de test en ejecución`);
+};
+
+function obtenerPreguntas() {
+    const todas = [];
+
+    if (temasSeleccionados.has('todos')) {
+        temasData.forEach(tema => {
+            tema.preguntas.forEach(p => {
+                if (p.verificada) todas.push({ ...p, temaNombre: tema.nombre });
+            });
+        });
+    } else {
+        temasData.forEach(tema => {
+            if (temasSeleccionados.has(tema.id)) {
+                tema.preguntas.forEach(p => {
+                    if (p.verificada) todas.push({ ...p, temaNombre: tema.nombre });
+                });
+            }
+        });
+    }
+
+    const vistos = new Set();
+    return todas.filter(p => {
+        const k = p.texto.trim().toLowerCase();
+        if (vistos.has(k)) return false;
+        vistos.add(k);
+        return true;
+    });
+}
+
+window.recargarDatos = async function() {
+    document.getElementById('temaList').innerHTML = '<div class="spinner-container"><div class="spinner"></div></div>';
+    await cargarDatos();
+};
+</script>
+</body>
+</html>
