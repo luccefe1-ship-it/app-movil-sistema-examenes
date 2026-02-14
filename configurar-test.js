@@ -103,33 +103,50 @@ function crearElementoTema(tema, subtemas) {
     const temaHeader = document.createElement('div');
     temaHeader.className = 'tema-header';
     
-    // Si NO tiene subtemas pero SÍ preguntas, hacerlo seleccionable
-    if (subtemas.length === 0 && cantidadPreguntasTema > 0) {
-        temaHeader.innerHTML = `
-            <input type="checkbox" id="tema-${tema.id}" data-tema-id="${tema.id}">
-            <label for="tema-${tema.id}" style="flex: 1; cursor: pointer; font-weight: 600;">
-                ${tema.nombre}
-            </label>
-            <span style="color: #999; font-size: 14px;">${infoExtra}</span>
-        `;
-        
-        temaHeader.querySelector('input').addEventListener('change', (e) => {
-            if (e.target.checked) {
+    // SIEMPRE hacerlo seleccionable (temas padre con o sin subtemas)
+    temaHeader.innerHTML = `
+        <input type="checkbox" id="tema-${tema.id}" data-tema-id="${tema.id}">
+        <label for="tema-${tema.id}" style="flex: 1; cursor: pointer; font-weight: 600;">
+            ${tema.nombre}
+        </label>
+        <span style="color: #999; font-size: 14px;">${infoExtra}</span>
+    `;
+    
+    const checkboxTema = temaHeader.querySelector('input');
+    checkboxTema.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            // Seleccionar TODOS los subtemas automáticamente
+            if (subtemas.length > 0) {
+                subtemas.forEach(subtema => {
+                    const checkboxSubtema = document.querySelector(`#subtema-${subtema.id}`);
+                    if (checkboxSubtema && !checkboxSubtema.checked) {
+                        checkboxSubtema.checked = true;
+                        checkboxSubtema.dispatchEvent(new Event('change'));
+                    }
+                });
+            } else if (cantidadPreguntasTema > 0) {
+                // Si no tiene subtemas pero sí preguntas, agregar el tema
                 subtemasSeleccionados.push({
                     id: tema.id,
                     nombre: tema.nombre,
                     preguntas: tema.preguntas || []
                 });
+            }
+        } else {
+            // Deseleccionar TODOS los subtemas
+            if (subtemas.length > 0) {
+                subtemas.forEach(subtema => {
+                    const checkboxSubtema = document.querySelector(`#subtema-${subtema.id}`);
+                    if (checkboxSubtema && checkboxSubtema.checked) {
+                        checkboxSubtema.checked = false;
+                        checkboxSubtema.dispatchEvent(new Event('change'));
+                    }
+                });
             } else {
                 subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== tema.id);
             }
-        });
-    } else {
-        temaHeader.innerHTML = `
-            <span style="font-weight: 600; flex: 1;">${tema.nombre}</span>
-            <span style="color: #999; font-size: 14px;">${infoExtra}</span>
-        `;
-    }
+        }
+    });
     
     temaDiv.appendChild(temaHeader);
 
