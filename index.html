@@ -229,15 +229,7 @@
         });
 
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(regs => {
-                regs.forEach(reg => reg.unregister());
-            }).then(() => {
-                caches.keys().then(keys => {
-                    keys.forEach(key => caches.delete(key));
-                });
-            }).then(() => {
-                navigator.serviceWorker.register('/sw.js?v=6');
-            });
+            navigator.serviceWorker.register('/sw.js?v=7');
         }
     </script>
 </body>
