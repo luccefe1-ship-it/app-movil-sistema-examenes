@@ -12,7 +12,7 @@ onAuthStateChanged(auth, async (user) => {
         currentUser = user;
         cargarTest();
     } else {
-        window.location.href = 'https://plataforma-examenes-f2df9.web.app/index.html';
+        window.location.href = 'login.html';
     }
 });
 
