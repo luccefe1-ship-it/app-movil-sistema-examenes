@@ -124,6 +124,14 @@ function crearElementoTema(tema, subtemas) {
                         checkboxSubtema.dispatchEvent(new Event('change'));
                     }
                 });
+                // TAMBIÉN agregar el tema padre a la lista para poder marcarlo después
+                if (!subtemasSeleccionados.find(s => s.id === tema.id)) {
+                    subtemasSeleccionados.push({
+                        id: tema.id,
+                        nombre: tema.nombre,
+                        esTemaCompleto: true // Flag para identificarlo
+                    });
+                }
             } else if (cantidadPreguntasTema > 0) {
                 // Si no tiene subtemas pero sí preguntas, agregar el tema
                 subtemasSeleccionados.push({
@@ -142,6 +150,8 @@ function crearElementoTema(tema, subtemas) {
                         checkboxSubtema.dispatchEvent(new Event('change'));
                     }
                 });
+                // Remover también el tema padre
+                subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== tema.id);
             } else {
                 subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== tema.id);
             }
