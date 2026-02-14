@@ -68,19 +68,16 @@ function mostrarPregunta(index) {
     document.getElementById('numeroPregunta').textContent = index + 1;
     
     // Mostrar texto de la pregunta
-    const textoPregunta = pregunta.texto || pregunta.question || 'Pregunta sin texto';
-    document.getElementById('textoPregunta').textContent = textoPregunta;
+    document.getElementById('textoPregunta').textContent = pregunta.texto || 'Pregunta sin texto';
     
     // Renderizar opciones
     const opcionesDiv = document.getElementById('opcionesRespuesta');
     opcionesDiv.innerHTML = '';
     
-    const opciones = pregunta.opciones || pregunta.options || [];
-    opciones.forEach((opcion, i) => {
+    (pregunta.opciones || []).forEach((opcion, i) => {
         const boton = document.createElement('button');
         boton.className = 'opcion-btn';
-        const textoOpcion = typeof opcion === 'string' ? opcion : 'Opción sin texto';
-        boton.textContent = `${String.fromCharCode(65 + i)}) ${textoOpcion}`;
+        boton.textContent = `${String.fromCharCode(65 + i)}) ${opcion}`;
         
         // Marcar si ya fue seleccionada
         if (respuestasUsuario[index] === i) {
