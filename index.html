@@ -232,8 +232,16 @@
             navigator.serviceWorker.getRegistrations().then(regs => {
                 regs.forEach(reg => reg.unregister());
             }).then(() => {
-                navigator.serviceWorker.register('/sw.js?v=4');
+                caches.keys().then(keys => {
+                    keys.forEach(key => caches.delete(key));
+                });
+            }).then(() => {
+                navigator.serviceWorker.register('/sw.js?v=5').then(() => {
+                    window.location.href = '/app.html?nocache=' + Date.now();
+                });
             });
+        } else {
+            window.location.href = '/app.html';
         }
     </script>
 </body>
