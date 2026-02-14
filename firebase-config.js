@@ -1,5 +1,5 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyC5KoU8YyrSwMIjuMMczS8mnEBgMfDlrzc",
+  apiKey: "AIzaSyAlfj9E0V-b9DDyILgb0cU0ZWLuInv8bEo",
   authDomain: "plataforma-examenes-f2df9.firebaseapp.com",
   projectId: "plataforma-examenes-f2df9",
   storageBucket: "plataforma-examenes-f2df9.firebasestorage.app",
