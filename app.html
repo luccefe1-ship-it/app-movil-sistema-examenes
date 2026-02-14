@@ -426,10 +426,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = initializeFirestore(app, {
-            localCache: memoryLocalCache(),
-            experimentalForceLongPolling: true
-        });
+        const db = getFirestore(app);
 
         let currentUser = null;
         let temas = [];
@@ -451,7 +448,9 @@
         });
 
         async function loadData() {
-            showLoader();
+            const content = document.querySelector('.content');
+            content.innerHTML = '<div class="loader"></div>';
+            
             try {
                 const [t, p, f, r] = await Promise.all([
                     getDocs(query(collection(db, 'temas'), where('usuarioId', '==', currentUser.uid))),
@@ -484,11 +483,19 @@
                     (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)
                 );
 
+                // Restaurar el HTML de las pantallas
+                content.innerHTML = `
+                    <div id="screenConfig"></div>
+                    <div id="screenTest" class="hidden"></div>
+                    <div id="screenResults" class="hidden"></div>
+                    <div id="screenHistory" class="hidden"></div>
+                    <div id="screenHistoryDetail" class="hidden"></div>
+                `;
+                
                 renderConfig();
-                hideLoader();
             } catch (err) {
-                console.error(err);
-                hideLoader();
+                console.error('Error cargando datos:', err);
+                content.innerHTML = '<div style="text-align:center;color:#ef4444;padding:2rem;">Error al cargar datos. <button onclick="location.reload()" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;border:none;border-radius:8px;color:#fff;cursor:pointer;">Reintentar</button></div>';
             }
         }
 
@@ -787,11 +794,13 @@
         }
 
         function showLoader() {
-            document.querySelector('.content').innerHTML = '<div class="loader"></div>';
+            const content = document.querySelector('.content');
+            content.innerHTML = '<div class="loader"></div>';
         }
 
         function hideLoader() {
-            document.querySelector('.content').innerHTML = document.querySelector('.content').innerHTML;
+            // El contenido se restaura cuando renderConfig() reconstruye las pantallas
+            // No hacemos nada aquí porque loadData() ya llama a renderConfig()
         }
 
         // Event Listeners
