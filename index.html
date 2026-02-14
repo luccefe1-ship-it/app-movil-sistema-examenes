@@ -35,6 +35,31 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-color: transparent;
+        }
+        .form-section {
+            display: none;
+        }
+        .form-section.active {
+            display: block;
+        }
         .input-group {
             margin-bottom: 1.5rem;
         }
@@ -88,6 +113,16 @@
             text-align: center;
             color: #fca5a5;
         }
+        .success {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            text-align: center;
+            color: #6ee7b7;
+        }
         .loader {
             border: 3px solid rgba(255,255,255,0.2);
             border-top: 3px solid #667eea;
@@ -107,23 +142,53 @@
 <body>
     <div class="container">
         <h1>📚 App Tests</h1>
-        <form id="loginForm">
-            <div class="input-group">
-                <label>Email</label>
-                <input type="email" id="email" required autocomplete="email">
-            </div>
-            <div class="input-group">
-                <label>Contraseña</label>
-                <input type="password" id="password" required autocomplete="current-password">
-            </div>
-            <button type="submit" id="loginBtn">Entrar</button>
-        </form>
-        <div id="error" class="error" style="display: none;"></div>
+        
+        <div class="tabs">
+            <div class="tab active" id="tabLogin">Iniciar Sesión</div>
+            <div class="tab" id="tabRegister">Registrarse</div>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="form-section active" id="loginSection">
+            <form id="loginForm">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" required autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPassword" required autocomplete="current-password">
+                </div>
+                <button type="submit" id="loginBtn">Entrar</button>
+            </form>
+        </div>
+
+        <!-- REGISTRO -->
+        <div class="form-section" id="registerSection">
+            <form id="registerForm">
+                <div class="input-group">
+                    <label>Nombre</label>
+                    <input type="text" id="registerName" required>
+                </div>
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" required autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <label>Contraseña (mínimo 6 caracteres)</label>
+                    <input type="password" id="registerPassword" required autocomplete="new-password">
+                </div>
+                <button type="submit" id="registerBtn">Crear Cuenta</button>
+            </form>
+        </div>
+
+        <div id="message"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyC5KoU8YyrSwRIjuhMczS8mnEBgMfDlrzc",
@@ -136,34 +201,100 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
+        // Redireccionar si ya está logueado
         onAuthStateChanged(auth, (user) => {
             if (user) window.location.href = 'app.html';
         });
 
-        const form = document.getElementById('loginForm');
-        const btn = document.getElementById('loginBtn');
-        const error = document.getElementById('error');
+        // Tabs
+        document.getElementById('tabLogin').addEventListener('click', () => {
+            document.getElementById('tabLogin').classList.add('active');
+            document.getElementById('tabRegister').classList.remove('active');
+            document.getElementById('loginSection').classList.add('active');
+            document.getElementById('registerSection').classList.remove('active');
+            clearMessage();
+        });
 
-        form.addEventListener('submit', async (e) => {
+        document.getElementById('tabRegister').addEventListener('click', () => {
+            document.getElementById('tabRegister').classList.add('active');
+            document.getElementById('tabLogin').classList.remove('active');
+            document.getElementById('registerSection').classList.add('active');
+            document.getElementById('loginSection').classList.remove('active');
+            clearMessage();
+        });
+
+        // LOGIN
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('loginBtn');
             btn.disabled = true;
             btn.innerHTML = 'Entrando<div class="loader"></div>';
-            error.style.display = 'none';
+            clearMessage();
 
             try {
                 await signInWithEmailAndPassword(auth, 
-                    document.getElementById('email').value,
-                    document.getElementById('password').value
+                    document.getElementById('loginEmail').value,
+                    document.getElementById('loginPassword').value
                 );
             } catch (err) {
-                error.textContent = err.code === 'auth/invalid-credential' ? 
-                    'Email o contraseña incorrectos' : 'Error al iniciar sesión';
-                error.style.display = 'block';
+                showMessage(
+                    err.code === 'auth/invalid-credential' ? 'Email o contraseña incorrectos' : 'Error al iniciar sesión',
+                    'error'
+                );
                 btn.disabled = false;
                 btn.innerHTML = 'Entrar';
             }
         });
+
+        // REGISTRO
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Creando cuenta<div class="loader"></div>';
+            clearMessage();
+
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                
+                // Guardar datos del usuario en Firestore
+                await setDoc(doc(db, 'usuarios', userCredential.user.uid), {
+                    nombre: name,
+                    email: email,
+                    fechaRegistro: new Date()
+                });
+
+                showMessage('¡Cuenta creada! Redirigiendo...', 'success');
+                // La redirección se hará automáticamente por onAuthStateChanged
+            } catch (err) {
+                let msg = 'Error al crear cuenta';
+                if (err.code === 'auth/email-already-in-use') msg = 'Este email ya está registrado';
+                if (err.code === 'auth/weak-password') msg = 'La contraseña debe tener al menos 6 caracteres';
+                if (err.code === 'auth/invalid-email') msg = 'Email inválido';
+                
+                showMessage(msg, 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Crear Cuenta';
+            }
+        });
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.className = type;
+            msg.textContent = text;
+            msg.style.display = 'block';
+        }
+
+        function clearMessage() {
+            const msg = document.getElementById('message');
+            msg.style.display = 'none';
+        }
     </script>
 </body>
 </html>
