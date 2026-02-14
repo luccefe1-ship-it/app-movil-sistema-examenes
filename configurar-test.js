@@ -19,14 +19,18 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Cargar temas y subtemas del usuario
 async function cargarTemas() {
     try {
         const listaTemas = document.getElementById('listaTemas');
         listaTemas.innerHTML = '<p class="loading">Cargando temas...</p>';
 
-        const q = query(collection(db, "temas"), where("usuarioId", "==", currentUser.uid));
+        console.log('Cargando temas para usuario:', currentUser.uid);
+
+        const temasRef = collection(db, "temas");
+        const q = query(temasRef, where("usuarioId", "==", currentUser.uid));
         const snapshot = await getDocs(q);
+
+        console.log('Temas encontrados:', snapshot.size);
 
         // Separar temas principales y subtemas
         const temasPrincipales = [];
@@ -34,6 +38,7 @@ async function cargarTemas() {
 
         snapshot.forEach((doc) => {
             const tema = { id: doc.id, ...doc.data() };
+            console.log('Tema cargado:', tema.nombre, '- Es subtema:', !!tema.temaPadreId);
             
             if (tema.temaPadreId) {
                 // Es un subtema
@@ -47,8 +52,11 @@ async function cargarTemas() {
             }
         });
 
+        console.log('Temas principales:', temasPrincipales.length);
+        console.log('Subtemas totales:', Array.from(subtemasMap.values()).flat().length);
+
         if (temasPrincipales.length === 0) {
-            listaTemas.innerHTML = '<p style="color: #666; text-align: center;">No tienes temas creados aún</p>';
+            listaTemas.innerHTML = '<p style="color: white; text-align: center; padding: 20px;">No tienes temas creados en la plataforma de escritorio.<br><br>Crea temas y preguntas en:<br><a href="https://plataforma-examenes-f2df9.web.app" style="color: white; text-decoration: underline;">plataforma-examenes-f2df9.web.app</a></p>';
             return;
         }
 
@@ -63,7 +71,7 @@ async function cargarTemas() {
 
     } catch (error) {
         console.error('Error cargando temas:', error);
-        document.getElementById('listaTemas').innerHTML = '<p style="color: red;">Error cargando temas</p>';
+        document.getElementById('listaTemas').innerHTML = `<p style="color: white; text-align: center; padding: 20px;">Error cargando temas: ${error.message}</p>`;
     }
 }
 
