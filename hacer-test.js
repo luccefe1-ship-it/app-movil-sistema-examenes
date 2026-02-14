@@ -86,11 +86,34 @@ function mostrarPregunta(index) {
         
         boton.addEventListener('click', () => {
             // Desmarcar todas
-            opcionesDiv.querySelectorAll('.opcion-btn').forEach(b => b.classList.remove('selected'));
+            opcionesDiv.querySelectorAll('.opcion-btn').forEach(b => {
+                b.classList.remove('selected', 'correcta', 'incorrecta');
+                b.style.pointerEvents = 'auto';
+            });
+            
             // Marcar la seleccionada
             boton.classList.add('selected');
             // Guardar respuesta
             respuestasUsuario[index] = i;
+            
+            // Mostrar corrección inmediatamente
+            const esCorrecta = i === pregunta.respuestaCorrecta;
+            
+            if (esCorrecta) {
+                boton.classList.add('correcta');
+            } else {
+                boton.classList.add('incorrecta');
+                // Mostrar también la correcta
+                opcionesDiv.querySelectorAll('.opcion-btn')[pregunta.respuestaCorrecta].classList.add('correcta');
+            }
+            
+            // Bloquear otras opciones
+            opcionesDiv.querySelectorAll('.opcion-btn').forEach(b => {
+                b.style.pointerEvents = 'none';
+            });
+            
+            // Mostrar explicación si existe
+            mostrarExplicacion(pregunta);
         });
         
         opcionesDiv.appendChild(boton);
@@ -266,4 +289,41 @@ function actualizarPreguntasFalladas(resultado) {
         
         localStorage.setItem('preguntasFalladas', JSON.stringify(falladas));
     }
+// Mostrar explicación de la pregunta
+function mostrarExplicacion(pregunta) {
+    // Eliminar explicación previa si existe
+    const explicacionPrevia = document.querySelector('.explicacion-container');
+    if (explicacionPrevia) {
+        explicacionPrevia.remove();
+    }
+    
+    // Verificar si hay alguna explicación
+    if (!pregunta.explicacion && !pregunta.explicacionGemini && !pregunta.explicacionPDF) {
+        return;
+    }
+    
+    // Crear contenedor de explicación
+    const explicacionDiv = document.createElement('div');
+    explicacionDiv.className = 'explicacion-container';
+    explicacionDiv.style.cssText = 'margin-top: 20px; padding: 15px; background: #f0f4ff; border-radius: 10px; border-left: 4px solid #667eea;';
+    
+    let html = '<strong style="color: #667eea;">💡 Explicación:</strong>';
+    
+    if (pregunta.explicacion) {
+        html += `<p style="margin-top: 8px; font-size: 14px; color: #333;"><strong>Manual:</strong> ${pregunta.explicacion}</p>`;
+    }
+    
+    if (pregunta.explicacionGemini) {
+        html += `<p style="margin-top: 8px; font-size: 14px; color: #333;"><strong>Gemini:</strong> ${pregunta.explicacionGemini}</p>`;
+    }
+    
+    if (pregunta.explicacionPDF) {
+        html += `<p style="margin-top: 8px; font-size: 14px; color: #333;"><strong>PDF:</strong> ${pregunta.explicacionPDF}</p>`;
+    }
+    
+    explicacionDiv.innerHTML = html;
+    
+    // Insertar después de las opciones
+    document.querySelector('.pregunta-card').appendChild(explicacionDiv);
+}
 }
