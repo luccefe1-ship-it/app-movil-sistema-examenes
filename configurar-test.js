@@ -247,17 +247,24 @@ async function iniciarTest() {
     let preguntasDisponibles = [];
     subtemasSeleccionados.forEach(subtema => {
         const preguntasVerificadas = (subtema.preguntas || []).filter(p => p.verificada);
-        preguntasDisponibles.push(...preguntasVerificadas.map(p => ({
-            texto: p.question || p.texto,
-            opciones: p.options || p.opciones,
-            respuestaCorrecta: p.correctAnswer !== undefined ? p.correctAnswer : p.respuestaCorrecta,
-            explicacion: p.explanation || p.explicacion || '',
-            explicacionGemini: p.explicacionGemini || '',
-            explicacionPDF: p.explicacionPDF || '',
-            verificada: true,
-            subtemaId: subtema.id,
-            subtemaNombre: subtema.nombre
-        })));
+        preguntasDisponibles.push(...preguntasVerificadas.map(p => {
+            // Extraer textos de opciones (vienen como array de objetos {texto, esCorrecta})
+            const opcionesTexto = (p.opciones || []).map(op => op.texto || op);
+            // Encontrar índice de respuesta correcta
+            const respuestaCorrectaIndex = (p.opciones || []).findIndex(op => op.esCorrecta === true);
+            
+            return {
+                texto: p.texto || '',
+                opciones: opcionesTexto,
+                respuestaCorrecta: respuestaCorrectaIndex >= 0 ? respuestaCorrectaIndex : 0,
+                explicacion: p.explicacion || '',
+                explicacionGemini: p.explicacionGemini || '',
+                explicacionPDF: p.explicacionPDF || '',
+                verificada: true,
+                subtemaId: subtema.id,
+                subtemaNombre: subtema.nombre
+            };
+        }));
     });
 
     if (preguntasDisponibles.length === 0) {
