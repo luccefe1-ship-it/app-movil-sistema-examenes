@@ -32,33 +32,24 @@ async function cargarTemas() {
 
         console.log('Temas encontrados:', snapshot.size);
 
-        // Separar temas principales y subtemas
         const temasPrincipales = [];
         const subtemasMap = new Map();
 
         snapshot.forEach((doc) => {
             const tema = { id: doc.id, ...doc.data() };
-            console.log('Tema cargado:', tema.nombre, '- Es subtema:', !!tema.temaPadreId);
             
             if (tema.temaPadreId) {
-                // Es un subtema
                 if (!subtemasMap.has(tema.temaPadreId)) {
                     subtemasMap.set(tema.temaPadreId, []);
                 }
                 subtemasMap.get(tema.temaPadreId).push(tema);
             } else {
-                // Es tema principal
                 temasPrincipales.push(tema);
             }
         });
 
-        console.log('Temas principales:', temasPrincipales.length);
-        console.log('Subtemas totales:', Array.from(subtemasMap.values()).flat().length);
-
-        // Ordenar temas alfabéticamente con orden natural (números)
         temasPrincipales.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }));
         
-        // Ordenar subtemas dentro de cada tema
         subtemasMap.forEach((subtemas) => {
             subtemas.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true, sensitivity: 'base' }));
         });
@@ -68,7 +59,6 @@ async function cargarTemas() {
             return;
         }
 
-        // Renderizar temas y subtemas
         listaTemas.innerHTML = '';
         temasPrincipales.forEach(tema => {
             const temaDiv = crearElementoTema(tema, subtemasMap.get(tema.id) || []);
@@ -83,15 +73,12 @@ async function cargarTemas() {
     }
 }
 
-// Crear elemento visual de tema con sus subtemas
 function crearElementoTema(tema, subtemas) {
     const temaDiv = document.createElement('div');
     temaDiv.className = 'tema-item';
 
     const cantidadPreguntasTema = tema.preguntas?.filter(p => p.verificada)?.length || 0;
     
-    // Si tiene subtemas, mostrar número de subtemas
-    // Si NO tiene subtemas pero SÍ preguntas, mostrar número de preguntas
     let infoExtra = '';
     if (subtemas.length > 0) {
         infoExtra = `${subtemas.length} subtemas <span class="toggle-icon">▶</span>`;
@@ -99,11 +86,9 @@ function crearElementoTema(tema, subtemas) {
         infoExtra = `${cantidadPreguntasTema}`;
     }
 
-    // Header del tema
     const temaHeader = document.createElement('div');
     temaHeader.className = 'tema-header';
     
-    // SIEMPRE hacerlo seleccionable (temas padre con o sin subtemas)
     temaHeader.innerHTML = `
         <input type="checkbox" id="tema-${tema.id}" data-tema-id="${tema.id}">
         <label for="tema-${tema.id}" style="flex: 1; cursor: pointer; font-weight: 600;">
@@ -115,17 +100,15 @@ function crearElementoTema(tema, subtemas) {
     const checkboxTema = temaHeader.querySelector('input');
     checkboxTema.addEventListener('change', (e) => {
         if (e.target.checked) {
-            // Seleccionar TODOS los subtemas automáticamente
             if (subtemas.length > 0) {
                 subtemas.forEach(subtema => {
-                    const checkboxSubtema = document.querySelector(`#subtema-${subtema.id}`);
+                    const checkboxSubtema = document.querySelector(`#subtema-${CSS.escape(subtema.id)}`);
                     if (checkboxSubtema && !checkboxSubtema.checked) {
                         checkboxSubtema.checked = true;
                         checkboxSubtema.dispatchEvent(new Event('change'));
                     }
                 });
             } else if (cantidadPreguntasTema > 0) {
-                // Si no tiene subtemas pero sí preguntas, agregar el tema
                 subtemasSeleccionados.push({
                     id: tema.id,
                     nombre: tema.nombre,
@@ -133,10 +116,9 @@ function crearElementoTema(tema, subtemas) {
                 });
             }
         } else {
-            // Deseleccionar TODOS los subtemas
             if (subtemas.length > 0) {
                 subtemas.forEach(subtema => {
-                    const checkboxSubtema = document.querySelector(`#subtema-${subtema.id}`);
+                    const checkboxSubtema = document.querySelector(`#subtema-${CSS.escape(subtema.id)}`);
                     if (checkboxSubtema && checkboxSubtema.checked) {
                         checkboxSubtema.checked = false;
                         checkboxSubtema.dispatchEvent(new Event('change'));
@@ -150,7 +132,6 @@ function crearElementoTema(tema, subtemas) {
     
     temaDiv.appendChild(temaHeader);
 
-    // Lista de subtemas (seleccionables)
     if (subtemas.length > 0) {
         const subtemasDiv = document.createElement('div');
         subtemasDiv.className = 'subtemas-list';
@@ -176,7 +157,6 @@ function crearElementoTema(tema, subtemas) {
                     });
                 } else {
                     subtemasSeleccionados = subtemasSeleccionados.filter(s => s.id !== subtema.id);
-                    // Si se desmarca un subtema, desmarcar también el tema padre
                     const checkboxTema = temaDiv.querySelector('input[data-tema-id]');
                     if (checkboxTema) {
                         checkboxTema.checked = false;
@@ -187,16 +167,13 @@ function crearElementoTema(tema, subtemas) {
             subtemasDiv.appendChild(subtemaDiv);
         });
 
-        // Inicialmente contraído
         subtemasDiv.style.display = 'none';
         temaDiv.appendChild(subtemasDiv);
         
-        // Click en tema header para expandir/contraer (solo en el ícono)
         const toggleIcon = temaHeader.querySelector('.toggle-icon');
         if (toggleIcon) {
             toggleIcon.parentElement.style.cursor = 'pointer';
             toggleIcon.parentElement.addEventListener('click', (e) => {
-                // Solo si no se hizo click en el checkbox o label
                 if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
                     const isVisible = subtemasDiv.style.display !== 'none';
                     subtemasDiv.style.display = isVisible ? 'none' : 'block';
@@ -209,7 +186,6 @@ function crearElementoTema(tema, subtemas) {
     return temaDiv;
 }
 
-// Verificar si hay opciones rápidas disponibles
 function verificarOpcionesRapidas() {
     const ultimosParametros = localStorage.getItem('ultimosParametros');
     const preguntasFalladas = localStorage.getItem('preguntasFalladas');
@@ -227,9 +203,7 @@ function verificarOpcionesRapidas() {
     }
 }
 
-// Configurar eventos
 function configurarEventos() {
-    // Botones de cantidad
     document.querySelectorAll('.btn-cantidad').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.btn-cantidad').forEach(b => b.classList.remove('active'));
@@ -239,7 +213,6 @@ function configurarEventos() {
         });
     });
 
-    // Cantidad personalizada
     document.getElementById('cantidadPersonalizada').addEventListener('input', (e) => {
         if (e.target.value) {
             document.querySelectorAll('.btn-cantidad').forEach(b => b.classList.remove('active'));
@@ -247,16 +220,10 @@ function configurarEventos() {
         }
     });
 
-    // Seleccionar primera opción por defecto
     document.querySelector('.btn-cantidad').classList.add('active');
 
-    // Botón repetir parámetros
     document.getElementById('btnRepetirParametros')?.addEventListener('click', repetirUltimosParametros);
-
-    // Botón solo falladas
     document.getElementById('btnSoloFalladas')?.addEventListener('click', cargarSoloFalladas);
-
-    // Botón iniciar test
     document.getElementById('btnIniciarTest').addEventListener('click', iniciarTest);
 }
 
@@ -265,16 +232,17 @@ function repetirUltimosParametros() {
     const parametros = JSON.parse(localStorage.getItem('ultimosParametros'));
     if (!parametros) return;
 
-    // FIX BUG 1: Limpiar nombre base quitando TODOS los "(repetido)" y "repetidoxN"
-    // Primero obtener el nombre limpio sin ningún sufijo de repetición
+    // ===== DEBUG LOGS =====
+    console.log('%c=== DEBUG REPETIR PARÁMETROS ===', 'color: red; font-size: 16px;');
+    console.log('Parámetros completos:', JSON.stringify(parametros, null, 2));
+    console.log('IDs de subtemas guardados:', parametros.subtemas);
+    console.log('Tipo de cada ID:', parametros.subtemas.map(s => `${s} (${typeof s})`));
+
+    // FIX nombre: limpiar todo y añadir un solo "(repetido)"
     let nombreBase = parametros.nombre;
-    // Quitar todos los "(repetido)" que pueda haber (con o sin espacios)
     nombreBase = nombreBase.replace(/\s*\(repetido\)/g, '');
-    // Quitar posibles "repetidoxN"
     nombreBase = nombreBase.replace(/\s*repetidox\d+/g, '');
     nombreBase = nombreBase.trim();
-    
-    // Agregar un solo "(repetido)"
     document.getElementById('nombreTest').value = nombreBase + ' (repetido)';
     
     cantidadSeleccionada = parametros.cantidad;
@@ -290,48 +258,67 @@ function repetirUltimosParametros() {
     // Limpiar selección previa
     subtemasSeleccionados = [];
 
+    // DEBUG: Listar TODOS los checkboxes del DOM
+    const todosSubtemas = document.querySelectorAll('input[data-subtema-id]');
+    const todosTemas = document.querySelectorAll('input[data-tema-id]');
+    console.log(`Checkboxes en DOM: ${todosTemas.length} temas, ${todosSubtemas.length} subtemas`);
+    console.log('IDs subtemas en DOM:', Array.from(todosSubtemas).map(cb => `"${cb.dataset.subtemaId}" (${typeof cb.dataset.subtemaId})`));
+    console.log('IDs temas en DOM:', Array.from(todosTemas).map(cb => `"${cb.dataset.temaId}" (${typeof cb.dataset.temaId})`));
+
     // Esperar a que el DOM se actualice
     setTimeout(() => {
-        // 1. Marcar los subtemas individuales
+        let encontrados = 0;
+        let noEncontrados = 0;
+
         parametros.subtemas.forEach(subtemaId => {
-            // Intentar como subtema
-            const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
+            const idStr = String(subtemaId);
+            
+            // Buscar como subtema
+            const checkboxSubtema = document.querySelector(`input[data-subtema-id="${idStr}"]`);
+            // Buscar como tema (tema sin hijos)
+            const checkboxTema = document.querySelector(`input[data-tema-id="${idStr}"]`);
+            
+            console.log(`Buscando ID "${idStr}": subtema=${!!checkboxSubtema}, tema=${!!checkboxTema}`);
+            
             if (checkboxSubtema && !checkboxSubtema.checked) {
                 checkboxSubtema.checked = true;
                 checkboxSubtema.dispatchEvent(new Event('change'));
-            }
-            
-            // Intentar como tema sin subtemas (tema padre directo)
-            const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
-            if (checkboxTema && !checkboxTema.checked) {
+                encontrados++;
+            } else if (checkboxTema && !checkboxTema.checked) {
                 checkboxTema.checked = true;
                 checkboxTema.dispatchEvent(new Event('change'));
+                encontrados++;
+            } else if (!checkboxSubtema && !checkboxTema) {
+                noEncontrados++;
+                console.warn(`ID "${idStr}" NO ENCONTRADO en ningún checkbox del DOM`);
             }
         });
         
-        // FIX BUG 2: Marcar temas padre si TODOS sus subtemas hijos están marcados
-        // Usamos un setTimeout más largo para asegurar que los subtemas ya se marcaron
+        console.log(`Resultado: ${encontrados} encontrados, ${noEncontrados} NO encontrados`);
+        
+        // Marcar temas padre si TODOS sus subtemas están marcados
         setTimeout(() => {
             document.querySelectorAll('.tema-item').forEach(temaItem => {
                 const checkboxTema = temaItem.querySelector(':scope > .tema-header input[data-tema-id]');
-                if (!checkboxTema || checkboxTema.checked) return; // ya está marcado o no existe
+                if (!checkboxTema || checkboxTema.checked) return;
                 
                 const subtemasListDiv = temaItem.querySelector(':scope > .subtemas-list');
-                if (!subtemasListDiv) return; // no tiene lista de subtemas
+                if (!subtemasListDiv) return;
                 
-                const checkboxesSubtemas = subtemasListDiv.querySelectorAll('input[data-subtema-id]');
-                if (checkboxesSubtemas.length === 0) return; // no tiene subtemas
+                const checkboxesHijos = subtemasListDiv.querySelectorAll('input[data-subtema-id]');
+                if (checkboxesHijos.length === 0) return;
                 
-                // Verificar si TODOS los subtemas están marcados
-                const todosChecked = Array.from(checkboxesSubtemas).every(cb => cb.checked);
+                const todosChecked = Array.from(checkboxesHijos).every(cb => cb.checked);
                 
                 if (todosChecked) {
-                    // Marcar el checkbox visualmente SIN disparar el evento change
-                    // (porque los subtemas ya están en subtemasSeleccionados)
                     checkboxTema.checked = true;
+                    console.log(`Tema padre "${checkboxTema.dataset.temaId}" marcado (todos ${checkboxesHijos.length} subtemas OK)`);
                 }
             });
-        }, 150);
+            
+            console.log('%c=== FIN DEBUG ===', 'color: red; font-size: 16px;');
+            console.log('subtemasSeleccionados:', subtemasSeleccionados.length, subtemasSeleccionados.map(s => s.id));
+        }, 200);
     }, 300);
 
     // Marcar cantidad
@@ -344,7 +331,6 @@ function repetirUltimosParametros() {
     }
 }
 
-// Cargar solo preguntas falladas
 function cargarSoloFalladas() {
     const falladas = JSON.parse(localStorage.getItem('preguntasFalladas') || '[]');
     
@@ -353,7 +339,6 @@ function cargarSoloFalladas() {
         return;
     }
 
-    // Guardar configuración de test solo con falladas
     const configTest = {
         nombre: 'Repaso Preguntas Falladas',
         soloFalladas: true,
@@ -365,7 +350,6 @@ function cargarSoloFalladas() {
     window.location.href = 'hacer-test.html';
 }
 
-// Iniciar test
 async function iniciarTest() {
     const nombre = document.getElementById('nombreTest').value.trim() || 'Test sin nombre';
 
@@ -374,14 +358,11 @@ async function iniciarTest() {
         return;
     }
 
-    // Recopilar todas las preguntas verificadas de los subtemas seleccionados
     let preguntasDisponibles = [];
     subtemasSeleccionados.forEach(subtema => {
         const preguntasVerificadas = (subtema.preguntas || []).filter(p => p.verificada);
         preguntasDisponibles.push(...preguntasVerificadas.map(p => {
-            // Extraer textos de opciones (vienen como array de objetos {texto, esCorrecta})
             const opcionesTexto = (p.opciones || []).map(op => op.texto || op);
-            // Encontrar índice de respuesta correcta
             const respuestaCorrectaIndex = (p.opciones || []).findIndex(op => op.esCorrecta === true);
             
             return {
@@ -408,24 +389,20 @@ async function iniciarTest() {
         cantidadSeleccionada = preguntasDisponibles.length;
     }
 
-    // Mezclar y seleccionar preguntas
     const preguntasTest = mezclarArray(preguntasDisponibles).slice(0, cantidadSeleccionada);
 
-    // FIX BUG 1 (parte 2): Guardar el nombre BASE sin "(repetido)" 
-    // para que al repetir no se acumulen
+    // FIX: Guardar nombre LIMPIO sin sufijos de repetición
     let nombreLimpio = nombre;
     nombreLimpio = nombreLimpio.replace(/\s*\(repetido\)/g, '');
     nombreLimpio = nombreLimpio.replace(/\s*repetidox\d+/g, '');
     nombreLimpio = nombreLimpio.trim();
 
-    // Guardar parámetros para repetir (con nombre limpio)
     localStorage.setItem('ultimosParametros', JSON.stringify({
         nombre: nombreLimpio,
         subtemas: subtemasSeleccionados.map(s => s.id),
         cantidad: cantidadSeleccionada
     }));
 
-    // Guardar configuración del test (con nombre completo que el usuario ve)
     const configTest = {
         nombre: nombre,
         cantidad: cantidadSeleccionada,
@@ -438,7 +415,6 @@ async function iniciarTest() {
     window.location.href = 'hacer-test.html';
 }
 
-// Mezclar array
 function mezclarArray(array) {
     const resultado = [...array];
     for (let i = resultado.length - 1; i > 0; i--) {
