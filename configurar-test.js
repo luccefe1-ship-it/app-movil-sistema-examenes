@@ -267,18 +267,21 @@ function repetirUltimosParametros() {
 
     // Nombre inteligente para repeticiones
     let nuevoNombre = parametros.nombre;
-    const matchRepetido = nuevoNombre.match(/\s*\(repetido\)/);
-    const matchRepetidoX = nuevoNombre.match(/\s*repetido\s*x(\d+)$/);
+    
+    // Buscar si ya tiene " repetidoxN"
+    const matchRepetidoX = nuevoNombre.match(/\s+repetidox(\d+)$/);
+    // Buscar si tiene " (repetido)"
+    const matchRepetido = nuevoNombre.match(/\s+\(repetido\)$/);
     
     if (matchRepetidoX) {
-        // Ya tiene repetidoxN, incrementar
+        // Ya tiene "repetidoxN", incrementar el número
         const numero = parseInt(matchRepetidoX[1]) + 1;
-        nuevoNombre = nuevoNombre.replace(/\s*repetido\s*x\d+$/, ` repetidox${numero}`);
+        nuevoNombre = nuevoNombre.replace(/\s+repetidox\d+$/, ` repetidox${numero}`);
     } else if (matchRepetido) {
-        // Tiene (repetido), cambiar a repetidox2
-        nuevoNombre = nuevoNombre.replace(/\s*\(repetido\)/, ' repetidox2');
+        // Tiene " (repetido)", cambiar a "repetidox2"
+        nuevoNombre = nuevoNombre.replace(/\s+\(repetido\)$/, ' repetidox2');
     } else {
-        // Primera repetición
+        // Primera repetición, agregar " (repetido)"
         nuevoNombre = nuevoNombre + ' (repetido)';
     }
     
@@ -295,7 +298,7 @@ function repetirUltimosParametros() {
 
     // Esperar un momento para que el DOM se actualice
     setTimeout(() => {
-        // Marcar los subtemas primero
+        // Primero marcar los subtemas
         parametros.subtemas.forEach(subtemaId => {
             // Buscar checkbox de subtema
             const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
@@ -311,27 +314,25 @@ function repetirUltimosParametros() {
             }
         });
         
-        // Ahora verificar cada tema padre manualmente
-        document.querySelectorAll('input[data-tema-id]').forEach(checkboxTema => {
-            const temaId = checkboxTema.getAttribute('data-tema-id');
-            const temaItem = checkboxTema.closest('.tema-item');
-            if (!temaItem) return;
-            
-            // Buscar todos los checkboxes de subtemas dentro de este tema
-            const checkboxesSubtemas = Array.from(temaItem.querySelectorAll('input[data-subtema-id]'));
-            
-            if (checkboxesSubtemas.length === 0) return; // No tiene subtemas
-            
-            // Contar cuántos subtemas están marcados
-            const subtemasIds = checkboxesSubtemas.map(cb => cb.getAttribute('data-subtema-id'));
-            const subtemasIdsSeleccionados = subtemasIds.filter(id => parametros.subtemas.includes(id));
-            
-            // Si TODOS los subtemas de este tema están en los parámetros guardados, marcar el padre
-            if (subtemasIdsSeleccionados.length > 0 && subtemasIdsSeleccionados.length === subtemasIds.length) {
-                checkboxTema.checked = true;
-                console.log(`Marcando tema padre: ${temaId}`);
-            }
-        });
+        // AHORA marcar temas padre cuyos subtemas estén TODOS seleccionados
+        setTimeout(() => {
+            document.querySelectorAll('input[data-tema-id]').forEach(checkboxTema => {
+                const temaItem = checkboxTema.closest('.tema-item');
+                if (!temaItem) return;
+                
+                // Buscar todos los checkboxes de subtemas DENTRO de este tema
+                const checkboxesSubtemas = Array.from(temaItem.querySelectorAll('input[data-subtema-id]'));
+                
+                if (checkboxesSubtemas.length === 0) return; // No tiene subtemas
+                
+                // Verificar si TODOS están marcados
+                const todosEstanMarcados = checkboxesSubtemas.every(cb => cb.checked);
+                
+                if (todosEstanMarcados) {
+                    checkboxTema.checked = true;
+                }
+            });
+        }, 100);
     }, 200);
 
     // Marcar cantidad
