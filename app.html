@@ -550,6 +550,172 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* CARD FALLADAS */
+        .card-falladas {
+            background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(249,115,22,0.08));
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .card-falladas .falladas-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .card-falladas .falladas-titulo {
+            font-family: 'Syne', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--danger);
+        }
+        .card-falladas .falladas-count {
+            font-size: 12px;
+            color: var(--danger);
+            background: rgba(239,68,68,0.15);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .card-falladas .falladas-desc {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 14px;
+            line-height: 1.5;
+        }
+        .btn-falladas {
+            width: 100%;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-falladas:active { transform: scale(0.98); }
+
+        /* HISTORIAL CLICABLE */
+        .historial-item { cursor: pointer; transition: background 0.2s; }
+        .historial-item:active { background: var(--surface2); }
+
+        /* OVERLAY DETALLE HISTORIAL */
+        .overlay-detalle {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 200;
+            overflow-y: auto;
+            padding-bottom: 40px;
+        }
+        .overlay-detalle.visible { display: block; }
+        .overlay-detalle-header {
+            background: var(--surface);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .btn-volver-hist {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .overlay-detalle-titulo {
+            font-family: 'Syne', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* MODAL EXPLICACIÓN */
+        .modal-explicacion {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 300;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .modal-explicacion.visible { display: flex; }
+        .modal-explicacion-body {
+            background: var(--surface);
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .modal-expl-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .modal-expl-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .btn-cerrar-expl {
+            background: var(--surface2);
+            border: none;
+            color: var(--text);
+            font-size: 18px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .expl-content {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+        .expl-empty {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .btn-ver-explicacion {
+            background: var(--surface2);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-ver-explicacion:active { transform: scale(0.97); }
+
         /* SCROLLBAR */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -569,10 +735,20 @@
     <div class="section-title">Nuevo Test</div>
     <div class="section-sub">Configura tu práctica</div>
 
+    <!-- Card Test Falladas -->
+    <div class="card-falladas" id="cardFalladas">
+        <div class="falladas-header">
+            <span class="falladas-titulo">🔄 Test de Repaso</span>
+            <span class="falladas-count" id="falladasCount">0 preguntas</span>
+        </div>
+        <div class="falladas-desc">Repasa las preguntas que has fallado. Las que aciertes se eliminarán automáticamente.</div>
+        <button class="btn-falladas" onclick="empezarTestFalladas()">Empezar Test de Repaso</button>
+    </div>
+
     <!-- Nombre -->
     <div class="card">
         <div class="card-title">Nombre del test</div>
-        <input type="text" class="nombre-input" id="nombreTest" placeholder="Ej: Práctica tema 3">
+        <input type="text" class="nombre-input" id="nombreTest" placeholder="Ej: PrÃ¡ctica tema 3">
     </div>
 
     <!-- Temas -->
@@ -649,6 +825,28 @@
     </div>
 </div>
 
+<!-- OVERLAY DETALLE TEST -->
+<div class="overlay-detalle" id="overlayDetalle">
+    <div class="overlay-detalle-header">
+        <button class="btn-volver-hist" onclick="cerrarDetalleHistorial()">←</button>
+        <div class="overlay-detalle-titulo" id="detalleTitulo">Detalle del test</div>
+    </div>
+    <div id="detalleContenido" style="padding: 16px;"></div>
+</div>
+
+<!-- MODAL EXPLICACIÓN -->
+<div class="modal-explicacion" id="modalExplicacion" onclick="cerrarExplicacionModal(event)">
+    <div class="modal-explicacion-body" onclick="event.stopPropagation()">
+        <div class="modal-expl-header">
+            <span class="modal-expl-title">📖 Explicación</span>
+            <button class="btn-cerrar-expl" onclick="cerrarExplicacionModal()">✕</button>
+        </div>
+        <div id="explicacionContenido">
+            <div class="expl-empty">Cargando...</div>
+        </div>
+    </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav">
     <button class="nav-btn active" id="navTest" onclick="goTo('test')">
@@ -664,7 +862,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, query, where, getDocs, addDoc, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs, addDoc, orderBy, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { firebaseConfig } from './firebase-config.js';
 
 const app = initializeApp(firebaseConfig);
@@ -680,11 +878,24 @@ let preguntaIndex = 0;
 let respuestasUsuario = {};
 let respondidaActual = false;
 
+// Hash consistente con la plataforma
+function generarHashPregunta(texto) {
+    const preguntaTexto = texto || '';
+    let hash = 0;
+    for (let i = 0; i < preguntaTexto.length; i++) {
+        const char = preguntaTexto.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return 'q_' + Math.abs(hash).toString(36);
+}
+
 // AUTH
 onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = 'index.html'; return; }
     currentUser = user;
     await cargarTemas();
+    cargarContadorFalladas();
 });
 
 window.logout = async function() {
@@ -706,6 +917,7 @@ window.goTo = function(tab) {
     if (tab === 'test') {
         document.getElementById('navTest').classList.add('active');
         document.getElementById('configScreen').classList.add('active');
+        cargarContadorFalladas();
     } else {
         document.getElementById('navHistorial').classList.add('active');
         document.getElementById('historialScreen').classList.add('active');
@@ -915,7 +1127,8 @@ window.empezarTest = async function() {
         nombre,
         preguntas: seleccionadas,
         fechaInicio: new Date(),
-        temas: Array.from(temasSeleccionados)
+        temas: Array.from(temasSeleccionados),
+        esRepaso: false
     };
     preguntaIndex = 0;
     respuestasUsuario = {};
@@ -1087,10 +1300,50 @@ async function finalizarTest() {
             })),
             fechaCreacion: new Date(),
             usuarioId: currentUser.uid,
-            origen: 'app_movil'  // ← IMPORTANTE: no aparece en la versión web
+            origen: 'app_movil'
         });
     } catch (e) {
         console.error('Error guardando resultado:', e);
+    }
+
+    // Gestión de falladas
+    if (testActual.esRepaso) {
+        try {
+            const acertadas = detalle.filter(d => d.estado === 'correcta');
+            if (acertadas.length > 0) {
+                const qf = query(collection(db, "preguntasFalladas"), where("usuarioId", "==", currentUser.uid));
+                const snapF = await getDocs(qf);
+                const eliminaciones = [];
+                snapF.forEach(docSnap => {
+                    const textoF = docSnap.data().pregunta?.texto?.trim();
+                    if (acertadas.some(a => a.pregunta.texto?.trim() === textoF)) {
+                        eliminaciones.push(deleteDoc(docSnap.ref));
+                    }
+                });
+                if (eliminaciones.length > 0) await Promise.all(eliminaciones);
+            }
+        } catch (e) { console.error('Error gestionando repaso:', e); }
+    } else {
+        try {
+            const falladas = detalle.filter(d => d.estado === 'incorrecta');
+            if (falladas.length > 0) {
+                const promesas = falladas.map(d => addDoc(collection(db, "preguntasFalladas"), {
+                    usuarioId: currentUser.uid,
+                    pregunta: {
+                        texto: d.pregunta.texto,
+                        opciones: d.pregunta.opciones,
+                        respuestaCorrecta: d.respuestaCorrecta,
+                        temaId: d.pregunta.temaId || '',
+                        temaNombre: d.pregunta.temaNombre || ''
+                    },
+                    respuestaUsuario: d.respuestaUsuario,
+                    estado: d.estado,
+                    fechaFallo: new Date(),
+                    testNombre: testActual.nombre
+                }));
+                await Promise.all(promesas);
+            }
+        } catch (e) { console.error('Error guardando falladas:', e); }
     }
 
     // Mostrar resultados
@@ -1110,25 +1363,7 @@ async function finalizarTest() {
     document.getElementById('resIncorrectas').textContent = incorrectas;
     document.getElementById('resSin').textContent = sin;
 
-    // Revisión
-    const rev = document.getElementById('revisionList');
-    rev.innerHTML = '<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;">Revisión</div>';
-    detalle.forEach(d => {
-        const item = document.createElement('div');
-        item.className = `revision-item ${d.estado}`;
-        const optsHTML = d.pregunta.opciones.map(o => {
-            let cls = '';
-            if (o.letra === d.respuestaCorrecta) cls = 'correcta';
-            else if (o.letra === d.respuestaUsuario) cls = 'mi-resp';
-            return `<div class="rev-opcion ${cls}">${o.letra}) ${o.texto}${o.letra === d.respuestaCorrecta ? ' ✓' : ''}</div>`;
-        }).join('');
-        item.innerHTML = `
-            <div class="revision-estado ${d.estado}">${d.estado === 'correcta' ? '✅ Correcta' : d.estado === 'incorrecta' ? '❌ Incorrecta' : '⭕ Sin responder'}</div>
-            <div class="revision-pregunta">${d.indice}. ${d.pregunta.texto}</div>
-            <div class="revision-opciones">${optsHTML}</div>
-        `;
-        rev.appendChild(item);
-    });
+    renderizarRevision(detalle, 'revisionList');
 }
 
 window.nuevoTest = function() {
@@ -1138,6 +1373,7 @@ window.nuevoTest = function() {
     document.getElementById('configScreen').classList.add('active');
     document.getElementById('navTest').classList.add('active');
     document.getElementById('navHistorial').classList.remove('active');
+    cargarContadorFalladas();
 };
 
 // HISTORIAL
@@ -1155,12 +1391,12 @@ async function cargarHistorial() {
         }
 
         const resultados = [];
-        snap.forEach(doc => resultados.push({ id: doc.id, data: doc.data() }));
+        snap.forEach(d => resultados.push({ id: d.id, data: d.data() }));
 
         resultados.sort((a, b) => {
             const fa = a.data.fechaCreacion?.seconds ? new Date(a.data.fechaCreacion.seconds * 1000) : new Date(0);
-            const fb = b.data.fechaCreacion?.seconds ? new Date(b.data.fechaCreacion.seconds * 1000) : new Date(0);
-            return fb - fa;
+            const fb2 = b.data.fechaCreacion?.seconds ? new Date(b.data.fechaCreacion.seconds * 1000) : new Date(0);
+            return fb2 - fa;
         });
 
         container.innerHTML = '';
@@ -1179,6 +1415,10 @@ async function cargarHistorial() {
                 </div>
                 <button class="btn-borrar-test" data-id="${id}">🗑️</button>
             `;
+            item.onclick = (e) => {
+                if (e.target.closest('.btn-borrar-test')) return;
+                abrirDetalleHistorial(r);
+            };
             item.querySelector('.btn-borrar-test').onclick = (e) => {
                 e.stopPropagation();
                 borrarResultado(id, item);
@@ -1190,7 +1430,160 @@ async function cargarHistorial() {
         container.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Error cargando historial</p></div>';
     }
 }
+// ===================== RENDERIZAR REVISIÓN =====================
+function renderizarRevision(detalle, containerId) {
+    const rev = document.getElementById(containerId);
+    rev.innerHTML = '<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;margin-bottom:16px;">Revisión</div>';
+    detalle.forEach(d => {
+        const item = document.createElement('div');
+        item.className = `revision-item ${d.estado}`;
+        const opciones = d.pregunta?.opciones || [];
+        const optsHTML = opciones.map(o => {
+            let cls = '';
+            if (o.letra === d.respuestaCorrecta) cls = 'correcta';
+            else if (o.letra === d.respuestaUsuario) cls = 'mi-resp';
+            return `<div class="rev-opcion ${cls}">${o.letra}) ${o.texto}${o.letra === d.respuestaCorrecta ? ' ✔' : ''}</div>`;
+        }).join('');
+        const textoPreg = d.pregunta?.texto || '';
+        item.innerHTML = `
+            <div class="revision-estado ${d.estado}">${d.estado === 'correcta' ? '✅ Correcta' : d.estado === 'incorrecta' ? '❌ Incorrecta' : '⭕ Sin responder'}</div>
+            <div class="revision-pregunta">${d.indice}. ${textoPreg}</div>
+            <div class="revision-opciones">${optsHTML}</div>
+        `;
+        const btnExpl = document.createElement('button');
+        btnExpl.className = 'btn-ver-explicacion';
+        btnExpl.textContent = '📖 Ver explicación';
+        btnExpl.onclick = () => abrirExplicacion(textoPreg);
+        item.appendChild(btnExpl);
+        rev.appendChild(item);
+    });
+}
 
+// ===================== CONTADOR FALLADAS =====================
+async function cargarContadorFalladas() {
+    if (!currentUser) return;
+    try {
+        const q = query(collection(db, "preguntasFalladas"), where("usuarioId", "==", currentUser.uid));
+        const snap = await getDocs(q);
+        const card = document.getElementById('cardFalladas');
+        if (snap.empty) { card.style.display = 'none'; return; }
+        card.style.display = 'block';
+        document.getElementById('falladasCount').textContent = `${snap.size} preguntas`;
+    } catch (e) { console.error('Error cargando falladas:', e); }
+}
+
+// ===================== TEST FALLADAS =====================
+window.empezarTestFalladas = async function() {
+    try {
+        const q = query(collection(db, "preguntasFalladas"), where("usuarioId", "==", currentUser.uid));
+        const snap = await getDocs(q);
+        if (snap.empty) { alert('No hay preguntas falladas'); return; }
+
+        const preguntas = [];
+        snap.forEach(d => {
+            const data = d.data();
+            preguntas.push({ ...data.pregunta, temaNombre: data.pregunta.temaNombre || '', temaId: data.pregunta.temaId || '', documentId: d.id });
+        });
+
+        const unicas = [];
+        const vistos = new Set();
+        mezclar(preguntas).forEach(p => {
+            const k = p.texto.trim().toLowerCase();
+            if (!vistos.has(k)) { vistos.add(k); unicas.push(p); }
+        });
+
+        testActual = {
+            nombre: `Test de Repaso - ${new Date().toLocaleDateString('es-ES')}`,
+            preguntas: unicas,
+            fechaInicio: new Date(),
+            temas: ['repaso'],
+            esRepaso: true
+        };
+        preguntaIndex = 0;
+        respuestasUsuario = {};
+        respondidaActual = false;
+
+        document.getElementById('bottomNav').style.display = 'none';
+        document.getElementById('mainHeader').style.display = 'none';
+        document.getElementById('configScreen').classList.remove('active');
+        document.getElementById('testScreen').style.display = 'block';
+        document.getElementById('resultadosScreen').style.display = 'none';
+        mostrarPregunta();
+    } catch (e) { console.error(e); alert('Error cargando preguntas falladas'); }
+};
+
+// ===================== DETALLE HISTORIAL =====================
+function abrirDetalleHistorial(resultado) {
+    const overlay = document.getElementById('overlayDetalle');
+    document.getElementById('detalleTitulo').textContent = resultado.test?.nombre || 'Detalle del test';
+
+    let html = `
+        <div class="stats-row" style="padding:0 0 16px;">
+            <div class="stat-box c"><div class="num">${resultado.correctas}</div><div class="lbl">Correctas</div></div>
+            <div class="stat-box f"><div class="num">${resultado.incorrectas}</div><div class="lbl">Falladas</div></div>
+            <div class="stat-box s"><div class="num">${resultado.sinResponder || 0}</div><div class="lbl">Sin resp.</div></div>
+        </div>
+        <div id="detalleRevisionList"></div>
+    `;
+    document.getElementById('detalleContenido').innerHTML = html;
+
+    if (resultado.detalleRespuestas && resultado.detalleRespuestas.length > 0) {
+        renderizarRevision(resultado.detalleRespuestas, 'detalleRevisionList');
+    } else {
+        document.getElementById('detalleRevisionList').innerHTML = '<div class="empty-state"><p>No hay detalle de preguntas disponible para este test</p></div>';
+    }
+    overlay.classList.add('visible');
+}
+
+window.cerrarDetalleHistorial = function() {
+    document.getElementById('overlayDetalle').classList.remove('visible');
+};
+
+// ===================== EXPLICACIONES (solo lectura) =====================
+async function abrirExplicacion(textoPregunta) {
+    const modal = document.getElementById('modalExplicacion');
+    const contenido = document.getElementById('explicacionContenido');
+    modal.classList.add('visible');
+    contenido.innerHTML = '<div class="expl-empty"><div class="spinner"></div><br>Buscando explicación...</div>';
+
+    try {
+        const hash = generarHashPregunta(textoPregunta);
+        const docId = `${currentUser.uid}_${hash}`;
+        let textoExplicacion = '';
+
+        try {
+            const geminiRef = doc(db, 'explicacionesGemini', docId);
+            const geminiDoc = await getDoc(geminiRef);
+            if (geminiDoc.exists() && geminiDoc.data().texto) {
+                textoExplicacion = geminiDoc.data().texto;
+            }
+        } catch (e) {}
+
+        if (!textoExplicacion) {
+            try {
+                const userRef = doc(db, `usuarios/${currentUser.uid}/explicaciones`, hash);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists() && userDoc.data().gemini) {
+                    textoExplicacion = userDoc.data().gemini;
+                }
+            } catch (e) {}
+        }
+
+        if (textoExplicacion) {
+            contenido.innerHTML = `<div class="expl-content">${textoExplicacion}</div>`;
+        } else {
+            contenido.innerHTML = '<div class="expl-empty">📭 No hay explicación guardada para esta pregunta.<br><br>Puedes añadir explicaciones desde la plataforma web.</div>';
+        }
+    } catch (e) {
+        console.error('Error cargando explicación:', e);
+        contenido.innerHTML = '<div class="expl-empty">⚠️ Error al cargar la explicación</div>';
+    }
+}
+
+window.cerrarExplicacionModal = function(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('modalExplicacion').classList.remove('visible');
+};
 async function borrarResultado(docId, elemento) {
     if (!confirm('¿Eliminar este resultado?')) return;
     try {
