@@ -11,7 +11,7 @@ onAuthStateChanged(auth, async (user) => {
         await cargarDatosUsuario();
     } else {
         // Redirigir a login de la plataforma principal
-        window.location.href = 'https://plataforma-examenes-f2df9.web.app/index.html';
+        window.location.href = 'login.html';
     }
 });
 
@@ -34,7 +34,7 @@ async function cargarDatosUsuario() {
 document.getElementById('logoutBtn').addEventListener('click', async () => {
     try {
         await signOut(auth);
-        window.location.href = 'https://plataforma-examenes-f2df9.web.app/index.html';
+        window.location.href = 'login.html';
     } catch (error) {
         console.error('Error cerrando sesión:', error);
         alert('Error al cerrar sesión');
