@@ -1,4 +1,4 @@
-const CACHE_NAME = 'examenes-app-v6';
+const CACHE_NAME = 'examenes-app-v7';
 const ASSETS = [
     '/',
     '/index.html',
@@ -14,15 +14,17 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
     e.waitUntil(
         caches.keys().then(keys =>
-            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+            Promise.all(keys.map(k => caches.delete(k)))
         ).then(() => self.clients.claim())
     );
 });
 
 self.addEventListener('fetch', e => {
+    if (e.request.url.includes('app.html')) {
+        e.respondWith(fetch(e.request));
+        return;
+    }
     e.respondWith(
-        fetch(e.request).then(response => {
-            return response;
-        }).catch(() => caches.match(e.request))
+        fetch(e.request).catch(() => caches.match(e.request))
     );
 });
