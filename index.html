@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tests - Priii!</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#667eea">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Priii! Tests</h1>
+            <p id="userName">Cargando...</p>
+        </header>
+
+        <main>
+            <button class="btn-primary" onclick="window.location.href='configurar-test.html'">
+                ✏️ Nuevo Test
+            </button>
+
+            <button class="btn-secondary" onclick="window.location.href='historial.html'">
+                📊 Historial de Tests
+            </button>
+
+            <button class="btn-secondary" onclick="window.location.href='explicaciones.html'">
+                💡 Mis Explicaciones
+            </button>
+
+            <button class="btn-logout" id="logoutBtn">
+                🚪 Cerrar Sesión
+            </button>
+        </main>
+    </div>
+
+    <script type="module" src="index.js"></script>
+</body>
+</html>
