@@ -265,10 +265,17 @@ function repetirUltimosParametros() {
     const parametros = JSON.parse(localStorage.getItem('ultimosParametros'));
     if (!parametros) return;
 
-    // Nombre: quitar TODOS los "(repetido)" y agregar solo UNO
-    let nuevoNombre = parametros.nombre.replace(/\s*\(repetido\)\s*/g, '').trim();
-    nuevoNombre = nuevoNombre + ' (repetido)';
-    document.getElementById('nombreTest').value = nuevoNombre;
+    // FIX BUG 1: Limpiar nombre base quitando TODOS los "(repetido)" y "repetidoxN"
+    // Primero obtener el nombre limpio sin ningún sufijo de repetición
+    let nombreBase = parametros.nombre;
+    // Quitar todos los "(repetido)" que pueda haber (con o sin espacios)
+    nombreBase = nombreBase.replace(/\s*\(repetido\)/g, '');
+    // Quitar posibles "repetidoxN"
+    nombreBase = nombreBase.replace(/\s*repetidox\d+/g, '');
+    nombreBase = nombreBase.trim();
+    
+    // Agregar un solo "(repetido)"
+    document.getElementById('nombreTest').value = nombreBase + ' (repetido)';
     
     cantidadSeleccionada = parametros.cantidad;
 
@@ -280,42 +287,52 @@ function repetirUltimosParametros() {
         icon.textContent = '▼';
     });
 
+    // Limpiar selección previa
+    subtemasSeleccionados = [];
+
     // Esperar a que el DOM se actualice
     setTimeout(() => {
-        // Marcar subtemas
+        // 1. Marcar los subtemas individuales
         parametros.subtemas.forEach(subtemaId => {
+            // Intentar como subtema
             const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
             if (checkboxSubtema && !checkboxSubtema.checked) {
                 checkboxSubtema.checked = true;
                 checkboxSubtema.dispatchEvent(new Event('change'));
             }
             
+            // Intentar como tema sin subtemas (tema padre directo)
             const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
             if (checkboxTema && !checkboxTema.checked) {
                 checkboxTema.checked = true;
+                checkboxTema.dispatchEvent(new Event('change'));
             }
         });
         
-        // Marcar temas padre si TODOS sus subtemas están marcados
+        // FIX BUG 2: Marcar temas padre si TODOS sus subtemas hijos están marcados
+        // Usamos un setTimeout más largo para asegurar que los subtemas ya se marcaron
         setTimeout(() => {
             document.querySelectorAll('.tema-item').forEach(temaItem => {
-                const checkboxTema = temaItem.querySelector('input[data-tema-id]');
-                if (!checkboxTema) return;
+                const checkboxTema = temaItem.querySelector(':scope > .tema-header input[data-tema-id]');
+                if (!checkboxTema || checkboxTema.checked) return; // ya está marcado o no existe
                 
-                const subtemasDiv = temaItem.querySelector('.subtemas-list');
-                if (!subtemasDiv) return;
+                const subtemasListDiv = temaItem.querySelector(':scope > .subtemas-list');
+                if (!subtemasListDiv) return; // no tiene lista de subtemas
                 
-                const checkboxesSubtemas = Array.from(subtemasDiv.querySelectorAll('input[data-subtema-id]'));
-                if (checkboxesSubtemas.length === 0) return;
+                const checkboxesSubtemas = subtemasListDiv.querySelectorAll('input[data-subtema-id]');
+                if (checkboxesSubtemas.length === 0) return; // no tiene subtemas
                 
-                const todosEstanMarcados = checkboxesSubtemas.every(cb => cb.checked);
+                // Verificar si TODOS los subtemas están marcados
+                const todosChecked = Array.from(checkboxesSubtemas).every(cb => cb.checked);
                 
-                if (todosEstanMarcados && !checkboxTema.checked) {
+                if (todosChecked) {
+                    // Marcar el checkbox visualmente SIN disparar el evento change
+                    // (porque los subtemas ya están en subtemasSeleccionados)
                     checkboxTema.checked = true;
                 }
             });
-        }, 100);
-    }, 200);
+        }, 150);
+    }, 300);
 
     // Marcar cantidad
     const btnCantidad = document.querySelector(`[data-cantidad="${parametros.cantidad}"]`);
@@ -394,14 +411,21 @@ async function iniciarTest() {
     // Mezclar y seleccionar preguntas
     const preguntasTest = mezclarArray(preguntasDisponibles).slice(0, cantidadSeleccionada);
 
-    // Guardar parámetros para repetir
+    // FIX BUG 1 (parte 2): Guardar el nombre BASE sin "(repetido)" 
+    // para que al repetir no se acumulen
+    let nombreLimpio = nombre;
+    nombreLimpio = nombreLimpio.replace(/\s*\(repetido\)/g, '');
+    nombreLimpio = nombreLimpio.replace(/\s*repetidox\d+/g, '');
+    nombreLimpio = nombreLimpio.trim();
+
+    // Guardar parámetros para repetir (con nombre limpio)
     localStorage.setItem('ultimosParametros', JSON.stringify({
-        nombre: nombre,
+        nombre: nombreLimpio,
         subtemas: subtemasSeleccionados.map(s => s.id),
         cantidad: cantidadSeleccionada
     }));
 
-    // Guardar configuración del test
+    // Guardar configuración del test (con nombre completo que el usuario ve)
     const configTest = {
         nombre: nombre,
         cantidad: cantidadSeleccionada,
