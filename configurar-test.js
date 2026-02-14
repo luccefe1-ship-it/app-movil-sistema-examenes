@@ -93,7 +93,7 @@ function crearElementoTema(tema, subtemas) {
     temaHeader.className = 'tema-header';
     temaHeader.innerHTML = `
         <span style="font-weight: 600; flex: 1;">${tema.nombre}</span>
-        <span style="color: #999; font-size: 14px;">${subtemas.length} subtemas <span class="toggle-icon">▼</span></span>
+        <span style="color: #999; font-size: 14px;">${subtemas.length} subtemas <span class="toggle-icon">▶</span></span>
     `;
     temaDiv.appendChild(temaHeader);
 
@@ -129,6 +129,8 @@ function crearElementoTema(tema, subtemas) {
             subtemasDiv.appendChild(subtemaDiv);
         });
 
+        // Inicialmente contraído
+        subtemasDiv.style.display = 'none';
         temaDiv.appendChild(subtemasDiv);
         
         // Click en tema header para expandir/contraer
