@@ -285,23 +285,28 @@ function repetirUltimosParametros() {
             }
         });
         
-        // Verificar temas padre: si todos sus subtemas están marcados, marcar el tema
+        // Verificar temas padre: si TODOS sus subtemas están marcados, marcar el tema
         temasDisponibles.forEach(tema => {
             const checkboxTema = document.querySelector(`input[data-tema-id="${tema.id}"]`);
             if (!checkboxTema) return;
             
-            const subtemasDeTema = document.querySelectorAll(`input[data-subtema-id]`);
-            let todosSubtemasDelTema = [];
-            subtemasDeTema.forEach(checkbox => {
-                const subtemaId = checkbox.getAttribute('data-subtema-id');
-                // Verificar si este subtema pertenece a este tema
-                if (parametros.subtemas.includes(subtemaId)) {
-                    todosSubtemasDelTema.push(subtemaId);
-                }
+            // Obtener todos los checkboxes de subtemas que están visibles en el DOM
+            const todosCheckboxesSubtemas = Array.from(document.querySelectorAll(`input[data-subtema-id]`));
+            
+            // Filtrar solo los que pertenecen a este tema (están dentro del contenedor del tema)
+            const subtemasDelTemaEnDOM = todosCheckboxesSubtemas.filter(checkbox => {
+                return checkbox.closest('.tema-item') === checkboxTema.closest('.tema-item');
             });
             
-            // Si hay subtemas de este tema seleccionados, marcar el tema padre
-            if (todosSubtemasDelTema.length > 0 && !checkboxTema.checked) {
+            // Verificar cuántos están marcados
+            const subtemasDelTemaMarcados = subtemasDelTemaEnDOM.filter(checkbox => {
+                const subtemaId = checkbox.getAttribute('data-subtema-id');
+                return parametros.subtemas.includes(subtemaId);
+            });
+            
+            // Si TODOS los subtemas de este tema están marcados, marcar el tema padre
+            if (subtemasDelTemaEnDOM.length > 0 && 
+                subtemasDelTemaMarcados.length === subtemasDelTemaEnDOM.length) {
                 checkboxTema.checked = true;
             }
         });
