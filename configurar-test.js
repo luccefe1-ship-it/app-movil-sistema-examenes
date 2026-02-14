@@ -258,12 +258,20 @@ function repetirUltimosParametros() {
     document.getElementById('nombreTest').value = parametros.nombre + ' (repetido)';
     cantidadSeleccionada = parametros.cantidad;
 
-    // Marcar los subtemas
+    // Marcar los subtemas Y temas
     parametros.subtemas.forEach(subtemaId => {
-        const checkbox = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
-        if (checkbox) {
-            checkbox.checked = true;
-            checkbox.dispatchEvent(new Event('change'));
+        // Buscar checkbox de subtema
+        const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
+        if (checkboxSubtema) {
+            checkboxSubtema.checked = true;
+            checkboxSubtema.dispatchEvent(new Event('change'));
+        }
+        
+        // Buscar checkbox de tema padre
+        const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
+        if (checkboxTema) {
+            checkboxTema.checked = true;
+            checkboxTema.dispatchEvent(new Event('change'));
         }
     });
 
