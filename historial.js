@@ -1,5 +1,6 @@
-import { auth } from './js/firebase-config.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 let currentUser = null;
 
@@ -7,64 +8,35 @@ let currentUser = null;
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
-        cargarHistorial();
+        await cargarDatosUsuario();
     } else {
+        // Redirigir a login de la plataforma principal
         window.location.href = 'login.html';
     }
 });
 
-// Cargar historial de tests
-function cargarHistorial() {
-    const historial = JSON.parse(localStorage.getItem('historialTests') || '[]');
-    const listaDiv = document.getElementById('listaHistorial');
-    
-    if (historial.length === 0) {
-        listaDiv.innerHTML = '<p class="loading">No hay tests realizados aún</p>';
-        return;
+// Cargar datos del usuario
+async function cargarDatosUsuario() {
+    try {
+        const userDoc = await getDoc(doc(db, "usuarios", currentUser.uid));
+        if (userDoc.exists()) {
+            document.getElementById('userName').textContent = userDoc.data().nombre;
+        } else {
+            document.getElementById('userName').textContent = currentUser.email;
+        }
+    } catch (error) {
+        console.error('Error cargando usuario:', error);
+        document.getElementById('userName').textContent = currentUser.email;
     }
-    
-    listaDiv.innerHTML = '';
-    
-    historial.forEach(test => {
-        const item = crearItemHistorial(test);
-        listaDiv.appendChild(item);
-    });
 }
 
-// Crear elemento de historial
-function crearItemHistorial(test) {
-    const div = document.createElement('div');
-    div.className = 'historial-item';
-    
-    const fecha = new Date(test.fecha);
-    const fechaFormateada = fecha.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
-    // Color de la nota
-    let colorNota = '#667eea';
-    if (test.nota >= 45) colorNota = '#10b981';
-    else if (test.nota >= 30) colorNota = '#f59e0b';
-    else colorNota = '#ef4444';
-    
-    div.innerHTML = `
-        <h3>${test.nombre}</h3>
-        <p>${fechaFormateada}</p>
-        <p style="font-size: 14px; color: #666;">
-            ✅ ${test.aciertos} | ❌ ${test.fallos} | ⚪ ${test.blanco}
-        </p>
-        <div class="historial-nota" style="color: ${colorNota};">
-            ${test.nota.toFixed(2)}
-        </div>
-    `;
-    
-    div.addEventListener('click', () => {
-        window.location.href = `detalle-test.html?id=${test.id}`;
-    });
-    
-    return div;
-}
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try {
+        await signOut(auth);
+        window.location.href = 'login.html';
+    } catch (error) {
+        console.error('Error cerrando sesión:', error);
+        alert('Error al cerrar sesión');
+    }
+});
