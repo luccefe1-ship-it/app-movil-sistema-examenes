@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Tests</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #0a0f1e;
+            color: #fff;
+            padding-bottom: 70px;
+            overflow-x: hidden;
+        }
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(26, 31, 62, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.25rem;
+        }
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .icon-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.2);
+        }
+        .content {
+            padding: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: #a0aec0;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+        }
+        select {
+            cursor: pointer;
+        }
+        option {
+            background: #1a1f3e;
+            color: #fff;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .repaso-card {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+            border-color: rgba(16, 185, 129, 0.5);
+        }
+        .repaso-badge {
+            display: inline-block;
+            background: rgba(16, 185, 129, 0.3);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6ee7b7;
+            margin-bottom: 0.5rem;
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 31, 62, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 0.75rem;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #a0aec0;
+            font-size: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .nav-btn.active {
+            color: #667eea;
+        }
+        .nav-icon {
+            font-size: 1.5rem;
+        }
+        .hidden { display: none; }
+        .progress-bar {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+        }
+        .question-card {
+            background: rgba(26, 31, 62, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .question-number {
+            color: #a0aec0;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .question-text {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        .option {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option:active {
+            transform: scale(0.98);
+        }
+        .option.correct {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+        }
+        .option.incorrect {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+        }
+        .result-emoji {
+            font-size: 4rem;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .result-score {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .result-details {
+            text-align: center;
+            color: #a0aec0;
+            margin-bottom: 2rem;
+        }
+        .history-item {
+            background: rgba(26, 31, 62, 0.6);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .history-item:active {
+            background: rgba(26, 31, 62, 0.8);
+        }
+        .history-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .history-meta {
+            font-size: 0.75rem;
+            color: #a0aec0;
+        }
+        .history-score {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .delete-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        .loader {
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .review-question {
+            background: rgba(26, 31, 62, 0.5);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .review-question.correct {
+            border-left: 4px solid #10b981;
+        }
+        .review-question.incorrect {
+            border-left: 4px solid #ef4444;
+        }
+        .review-text {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .review-answer {
+            font-size: 0.875rem;
+            color: #a0aec0;
+        }
+        .multi-select {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+        .checkbox-item input {
+            width: auto;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="headerTitle">📚 App Tests</h1>
+        <div class="header-actions">
+            <button class="icon-btn" id="refreshBtn">🔄</button>
+            <button class="icon-btn" id="logoutBtn">🚪</button>
+        </div>
+    </div>
+
+    <div class="progress-bar hidden" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="content">
+        <!-- PANTALLA: Configurar Test -->
+        <div id="screenConfig">
+            <div class="card repaso-card hidden" id="repasoCard">
+                <div class="repaso-badge">⚡ Repaso Inteligente</div>
+                <div class="card-title" id="repasoTitle">Tienes X preguntas falladas</div>
+                <button class="btn-primary" id="btnRepaso">Hacer Test de Repaso</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Configurar Test</div>
+                <div class="input-group">
+                    <label>Nombre del test</label>
+                    <input type="text" id="testName" placeholder="Ej: Repaso General">
+                </div>
+                <div class="input-group">
+                    <label>Temas</label>
+                    <div class="multi-select" id="temasSelect"></div>
+                </div>
+                <div class="input-group">
+                    <label>Cantidad de preguntas</label>
+                    <select id="cantidad">
+                        <option value="10">10 preguntas</option>
+                        <option value="20" selected>20 preguntas</option>
+                        <option value="30">30 preguntas</option>
+                        <option value="50">50 preguntas</option>
+                    </select>
+                </div>
+                <button class="btn-primary" id="btnEmpezar">Empezar Test</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA: Test en Curso -->
+        <div id="screenTest" class="hidden">
+            <div class="question-card">
+                <div class="question-number" id="questionNumber">Pregunta X de Y</div>
+                <div class="question-text" id="questionText"></div>
+                <div id="optionsContainer"></div>
+            </div>
+            <button class="btn-primary hidden" id="btnNext">Siguiente</button>
+        </div>
+
+        <!-- PANTALLA: Resultados -->
+        <div id="screenResults" class="hidden">
+            <div class="card">
+                <div class="result-emoji" id="resultEmoji">🎉</div>
+                <div class="result-score" id="resultScore">10/10</div>
+                <div class="result-details" id="resultDetails">100% • Aprobado</div>
+                <button class="btn-primary" id="btnNewTest">Hacer Otro Test</button>
+            </div>
+            <div class="card">
+                <div class="card-title">Revisión de Preguntas</div>
+                <div id="reviewContainer"></div>
+            </div>
+        </div>
+
+        <!-- PANTALLA: Historial -->
+        <div id="screenHistory" class="hidden">
+            <div id="historyList"></div>
+        </div>
+
+        <!-- PANTALLA: Detalle Historial -->
+        <div id="screenHistoryDetail" class="hidden">
+            <button class="btn-primary" id="btnBackToHistory" style="margin-bottom: 1rem;">← Volver</button>
+            <div class="card">
+                <div class="card-title" id="detailTitle">Test</div>
+                <div class="result-score" id="detailScore">10/10</div>
+                <div class="result-details" id="detailMeta">Fecha</div>
+                <button class="delete-btn" id="btnDelete">Eliminar Test</button>
+            </div>
+            <div class="card">
+                <div class="card-title">Preguntas</div>
+                <div id="detailReview"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-btn active" id="navTest">
+            <span class="nav-icon">📝</span>
+            <span>Test</span>
+        </button>
+        <button class="nav-btn" id="navHistory">
+            <span class="nav-icon">📊</span>
+            <span>Historial</span>
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getFirestore, collection, query, where, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5KoU8YyrSwRIjuhMczS8mnEBgMfDIrzc",
+            authDomain: "plataforma-examenes-f2df9.firebaseapp.com",
+            projectId: "plataforma-examenes-f2df9",
+            storageBucket: "plataforma-examenes-f2df9.firebasestorage.app",
+            messagingSenderId: "929311432973",
+            appId: "1:929311432973:web:99db0c56b5a4c0e0839ee7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let temas = [];
+        let preguntas = [];
+        let falladas = [];
+        let resultados = [];
+        let currentTest = null;
+        let currentQuestionIndex = 0;
+        let testQuestions = [];
+        let testAnswers = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            await loadData();
+        });
+
+        async function loadData() {
+            showLoader();
+            try {
+                const [t, p, f, r] = await Promise.all([
+                    getDocs(query(collection(db, 'temas'), where('usuarioId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, 'temas'))),
+                    getDocs(query(collection(db, 'preguntasFalladas'), where('usuarioId', '==', currentUser.uid))),
+                    getDocs(query(collection(db, 'resultados'), where('usuarioId', '==', currentUser.uid), where('origen', '==', 'app_movil')))
+                ]);
+
+                temas = t.docs.map(d => ({id: d.id, ...d.data()}));
+                
+                const allPreguntas = [];
+                for (const doc of p.docs) {
+                    const tema = doc.data();
+                    if (tema.usuarioId === currentUser.uid && tema.preguntas) {
+                        tema.preguntas.forEach(preg => {
+                            if (preg.verificada) {
+                                allPreguntas.push({
+                                    ...preg,
+                                    temaId: doc.id,
+                                    temaNombre: tema.nombre
+                                });
+                            }
+                        });
+                    }
+                }
+                preguntas = allPreguntas;
+
+                falladas = f.docs.map(d => ({id: d.id, ...d.data()}));
+                resultados = r.docs.map(d => ({id: d.id, ...d.data()})).sort((a, b) => 
+                    (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)
+                );
+
+                renderConfig();
+                hideLoader();
+            } catch (err) {
+                console.error(err);
+                hideLoader();
+            }
+        }
+
+        function renderConfig() {
+            const repasoCard = document.getElementById('repasoCard');
+            const repasoTitle = document.getElementById('repasoTitle');
+            
+            if (falladas.length > 0) {
+                repasoCard.classList.remove('hidden');
+                repasoTitle.textContent = `Tienes ${falladas.length} pregunta${falladas.length > 1 ? 's' : ''} fallada${falladas.length > 1 ? 's' : ''}`;
+            } else {
+                repasoCard.classList.add('hidden');
+            }
+
+            const temasContainer = document.getElementById('temasSelect');
+            temasContainer.innerHTML = `
+                <div class="checkbox-item">
+                    <input type="checkbox" id="tema-todos" value="todos">
+                    <label for="tema-todos">Todos los temas</label>
+                </div>
+                ${temas.map(t => `
+                    <div class="checkbox-item">
+                        <input type="checkbox" class="tema-check" id="tema-${t.id}" value="${t.id}">
+                        <label for="tema-${t.id}">${t.nombre}</label>
+                    </div>
+                `).join('')}
+            `;
+
+            document.getElementById('tema-todos').addEventListener('change', (e) => {
+                document.querySelectorAll('.tema-check').forEach(c => c.checked = e.target.checked);
+            });
+        }
+
+        function startTest(isRepaso = false) {
+            const nombre = document.getElementById('testName').value.trim() || (isRepaso ? 'Test de Repaso' : 'Test Rápido');
+            const cantidad = parseInt(document.getElementById('cantidad').value);
+
+            let pool = [];
+            if (isRepaso) {
+                pool = falladas.map(f => {
+                    const p = preguntas.find(pr => hashQuestion(pr) === f.hashPregunta);
+                    return p ? {...p, esRepaso: true} : null;
+                }).filter(Boolean);
+            } else {
+                const selectedTemas = Array.from(document.querySelectorAll('.tema-check:checked')).map(c => c.value);
+                if (selectedTemas.length === 0 && !document.getElementById('tema-todos').checked) {
+                    alert('Selecciona al menos un tema');
+                    return;
+                }
+                pool = document.getElementById('tema-todos').checked ? 
+                    preguntas : 
+                    preguntas.filter(p => selectedTemas.includes(p.temaId));
+            }
+
+            if (pool.length === 0) {
+                alert('No hay preguntas disponibles');
+                return;
+            }
+
+            testQuestions = shuffleArray([...pool]).slice(0, Math.min(cantidad, pool.length));
+            testAnswers = [];
+            currentQuestionIndex = 0;
+            currentTest = {
+                nombre,
+                isRepaso,
+                startTime: Date.now()
+            };
+
+            showScreen('screenTest');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = testQuestions[currentQuestionIndex];
+            document.getElementById('questionNumber').textContent = `Pregunta ${currentQuestionIndex + 1} de ${testQuestions.length}`;
+            document.getElementById('questionText').textContent = q.pregunta;
+
+            const shuffledOptions = shuffleArray(q.opciones.map((opt, idx) => ({text: opt, idx})));
+            
+            document.getElementById('optionsContainer').innerHTML = shuffledOptions.map((opt, i) => `
+                <div class="option" data-idx="${opt.idx}" data-display="${i}">
+                    ${String.fromCharCode(65 + i)}. ${opt.text}
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.option').forEach(el => {
+                el.addEventListener('click', () => handleAnswer(parseInt(el.dataset.idx)));
+            });
+
+            document.getElementById('btnNext').classList.add('hidden');
+            updateProgress();
+        }
+
+        function handleAnswer(selectedIdx) {
+            const q = testQuestions[currentQuestionIndex];
+            const isCorrect = selectedIdx === q.respuestaCorrecta;
+
+            testAnswers.push({
+                question: q,
+                selectedIdx,
+                isCorrect
+            });
+
+            document.querySelectorAll('.option').forEach(el => {
+                el.style.pointerEvents = 'none';
+                const idx = parseInt(el.dataset.idx);
+                if (idx === q.respuestaCorrecta) {
+                    el.classList.add('correct');
+                } else if (idx === selectedIdx) {
+                    el.classList.add('incorrect');
+                }
+            });
+
+            document.getElementById('btnNext').classList.remove('hidden');
+        }
+
+        async function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < testQuestions.length) {
+                renderQuestion();
+            } else {
+                await finishTest();
+            }
+        }
+
+        async function finishTest() {
+            const correctas = testAnswers.filter(a => a.isCorrect).length;
+            const total = testAnswers.length;
+            const porcentaje = Math.round((correctas / total) * 100);
+
+            const resultado = {
+                usuarioId: currentUser.uid,
+                nombreTest: currentTest.nombre,
+                correctas,
+                total,
+                porcentaje,
+                preguntas: testAnswers.map(a => ({
+                    pregunta: a.question.pregunta,
+                    opciones: a.question.opciones,
+                    respuestaCorrecta: a.question.respuestaCorrecta,
+                    respuestaSeleccionada: a.selectedIdx,
+                    esCorrecta: a.isCorrect,
+                    hashPregunta: hashQuestion(a.question)
+                })),
+                timestamp: serverTimestamp(),
+                origen: 'app_movil'
+            };
+
+            try {
+                await addDoc(collection(db, 'resultados'), resultado);
+
+                for (const ans of testAnswers) {
+                    const hash = hashQuestion(ans.question);
+                    
+                    if (!ans.isCorrect && !currentTest.isRepaso) {
+                        const existe = falladas.some(f => f.hashPregunta === hash);
+                        if (!existe) {
+                            await addDoc(collection(db, 'preguntasFalladas'), {
+                                usuarioId: currentUser.uid,
+                                hashPregunta: hash,
+                                pregunta: ans.question.pregunta,
+                                timestamp: serverTimestamp()
+                            });
+                        }
+                    } else if (ans.isCorrect && currentTest.isRepaso) {
+                        const fallada = falladas.find(f => f.hashPregunta === hash);
+                        if (fallada) {
+                            await deleteDoc(doc(db, 'preguntasFalladas', fallada.id));
+                        }
+                    }
+                }
+
+                await loadData();
+                showResults(correctas, total, porcentaje);
+            } catch (err) {
+                console.error(err);
+                alert('Error al guardar resultados');
+            }
+        }
+
+        function showResults(correctas, total, porcentaje) {
+            document.getElementById('resultScore').textContent = `${correctas}/${total}`;
+            document.getElementById('resultDetails').textContent = `${porcentaje}% • ${porcentaje >= 70 ? 'Aprobado ✓' : 'Suspendido ✗'}`;
+            
+            const emojis = {
+                100: '🏆', 90: '🎉', 80: '😊', 70: '👍', 60: '😐', 0: '😔'
+            };
+            document.getElementById('resultEmoji').textContent = Object.entries(emojis)
+                .find(([k]) => porcentaje >= parseInt(k))?.[1] || '😔';
+
+            document.getElementById('reviewContainer').innerHTML = testAnswers.map((a, i) => `
+                <div class="review-question ${a.isCorrect ? 'correct' : 'incorrect'}">
+                    <div class="review-text"><strong>P${i+1}:</strong> ${a.question.pregunta}</div>
+                    <div class="review-answer">
+                        ${a.isCorrect ? '✓ Correcta' : `✗ Tu respuesta: ${a.question.opciones[a.selectedIdx]}`}
+                        ${!a.isCorrect ? `<br>✓ Correcta: ${a.question.opciones[a.question.respuestaCorrecta]}` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            showScreen('screenResults');
+        }
+
+        function renderHistory() {
+            document.getElementById('historyList').innerHTML = resultados.length === 0 ? 
+                '<div style="text-align:center;color:#a0aec0;padding:2rem;">No hay tests realizados</div>' :
+                resultados.map(r => `
+                    <div class="history-item" data-id="${r.id}">
+                        <div>
+                            <div class="history-title">${r.nombreTest}</div>
+                            <div class="history-meta">
+                                ${new Date(r.timestamp?.seconds * 1000).toLocaleDateString('es-ES')} • 
+                                ${r.total} preguntas
+                            </div>
+                        </div>
+                        <div class="history-score" style="color: ${r.porcentaje >= 70 ? '#10b981' : '#ef4444'}">
+                            ${r.porcentaje}%
+                        </div>
+                    </div>
+                `).join('');
+
+            document.querySelectorAll('.history-item').forEach(el => {
+                el.addEventListener('click', () => showHistoryDetail(el.dataset.id));
+            });
+        }
+
+        function showHistoryDetail(id) {
+            const r = resultados.find(res => res.id === id);
+            if (!r) return;
+
+            document.getElementById('detailTitle').textContent = r.nombreTest;
+            document.getElementById('detailScore').textContent = `${r.correctas}/${r.total}`;
+            document.getElementById('detailMeta').textContent = `${r.porcentaje}% • ${new Date(r.timestamp?.seconds * 1000).toLocaleDateString('es-ES')}`;
+
+            document.getElementById('detailReview').innerHTML = r.preguntas.map((p, i) => `
+                <div class="review-question ${p.esCorrecta ? 'correct' : 'incorrect'}">
+                    <div class="review-text"><strong>P${i+1}:</strong> ${p.pregunta}</div>
+                    <div class="review-answer">
+                        ${p.esCorrecta ? '✓ Correcta' : `✗ Tu respuesta: ${p.opciones[p.respuestaSeleccionada]}`}
+                        ${!p.esCorrecta ? `<br>✓ Correcta: ${p.opciones[p.respuestaCorrecta]}` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('btnDelete').onclick = async () => {
+                if (!confirm('¿Eliminar este test?')) return;
+                try {
+                    await deleteDoc(doc(db, 'resultados', id));
+                    await loadData();
+                    showScreen('screenHistory');
+                    renderHistory();
+                } catch (err) {
+                    alert('Error al eliminar');
+                }
+            };
+
+            showScreen('screenHistoryDetail');
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.content > div').forEach(s => s.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+            document.getElementById('progressBar').classList.add('hidden');
+
+            if (screenId === 'screenTest') {
+                document.getElementById('progressBar').classList.remove('hidden');
+            }
+
+            if (screenId === 'screenHistory') {
+                renderHistory();
+            }
+        }
+
+        function updateProgress() {
+            const percent = ((currentQuestionIndex + 1) / testQuestions.length) * 100;
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+
+        function hashQuestion(q) {
+            const str = q.pregunta + q.opciones.join('') + q.respuestaCorrecta;
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString();
+        }
+
+        function shuffleArray(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function showLoader() {
+            document.querySelector('.content').innerHTML = '<div class="loader"></div>';
+        }
+
+        function hideLoader() {
+            document.querySelector('.content').innerHTML = document.querySelector('.content').innerHTML;
+        }
+
+        // Event Listeners
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('refreshBtn').addEventListener('click', loadData);
+        document.getElementById('btnEmpezar').addEventListener('click', () => startTest(false));
+        document.getElementById('btnRepaso').addEventListener('click', () => startTest(true));
+        document.getElementById('btnNext').addEventListener('click', nextQuestion);
+        document.getElementById('btnNewTest').addEventListener('click', () => {
+            showScreen('screenConfig');
+            loadData();
+        });
+        document.getElementById('navTest').addEventListener('click', () => {
+            showScreen('screenConfig');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('navTest').classList.add('active');
+        });
+        document.getElementById('navHistory').addEventListener('click', () => {
+            showScreen('screenHistory');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('navHistory').classList.add('active');
+        });
+        document.getElementById('btnBackToHistory').addEventListener('click', () => {
+            showScreen('screenHistory');
+        });
+    </script>
+</body>
+</html>
