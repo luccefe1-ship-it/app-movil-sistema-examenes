@@ -93,7 +93,7 @@ function crearElementoTema(tema, subtemas) {
     temaHeader.className = 'tema-header';
     temaHeader.innerHTML = `
         <span style="font-weight: 600; flex: 1;">${tema.nombre}</span>
-        <span style="color: #999; font-size: 14px;">${subtemas.length} subtemas</span>
+        <span style="color: #999; font-size: 14px;">${subtemas.length} subtemas <span class="toggle-icon">▼</span></span>
     `;
     temaDiv.appendChild(temaHeader);
 
@@ -130,6 +130,15 @@ function crearElementoTema(tema, subtemas) {
         });
 
         temaDiv.appendChild(subtemasDiv);
+        
+        // Click en tema header para expandir/contraer
+        temaHeader.style.cursor = 'pointer';
+        temaHeader.addEventListener('click', () => {
+            const isVisible = subtemasDiv.style.display !== 'none';
+            subtemasDiv.style.display = isVisible ? 'none' : 'block';
+            const icon = temaHeader.querySelector('.toggle-icon');
+            icon.textContent = isVisible ? '▶' : '▼';
+        });
     }
 
     return temaDiv;
