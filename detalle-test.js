@@ -1,4 +1,4 @@
-import { auth } from './js/firebase-config.js';
+import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 let currentUser = null;
@@ -131,15 +131,25 @@ function crearPreguntaDetalle(detalle, index) {
         html += `<div style="${estiloOpcion}">${String.fromCharCode(65 + i)}) ${opcion}</div>`;
     });
     
-    // Mostrar explicación si existe
+    // Mostrar explicaciones si existen (manual, Gemini o PDF)
+if (detalle.explicacion || detalle.explicacionGemini || detalle.explicacionPDF) {
+    html += `<div style="margin-top: 12px; padding: 10px; background: #f0f4ff; border-radius: 6px; border-left: 3px solid #667eea;">
+        <strong style="color: #667eea;">💡 Explicación:</strong>`;
+    
     if (detalle.explicacion) {
-        html += `
-            <div style="margin-top: 12px; padding: 10px; background: #f0f4ff; border-radius: 6px; border-left: 3px solid #667eea;">
-                <strong style="color: #667eea;">💡 Explicación:</strong>
-                <p style="margin-top: 6px; font-size: 14px; color: #333;">${detalle.explicacion}</p>
-            </div>
-        `;
+        html += `<p style="margin-top: 6px; font-size: 14px; color: #333;"><strong>Manual:</strong> ${detalle.explicacion}</p>`;
     }
+    
+    if (detalle.explicacionGemini) {
+        html += `<p style="margin-top: 6px; font-size: 14px; color: #333;"><strong>Gemini:</strong> ${detalle.explicacionGemini}</p>`;
+    }
+    
+    if (detalle.explicacionPDF) {
+        html += `<p style="margin-top: 6px; font-size: 14px; color: #333;"><strong>PDF:</strong> ${detalle.explicacionPDF}</p>`;
+    }
+    
+    html += `</div>`;
+}
     
     div.innerHTML = html;
     return div;
