@@ -15,7 +15,7 @@ onAuthStateChanged(auth, async (user) => {
         verificarOpcionesRapidas();
         configurarEventos();
     } else {
-        window.location.href = 'https://plataforma-examenes-f2df9.web.app/index.html';
+        window.location.href = 'login.html';
     }
 });
 
