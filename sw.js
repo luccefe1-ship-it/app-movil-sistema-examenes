@@ -1,8 +1,7 @@
-const CACHE_NAME = 'examenes-app-v3';
+const CACHE_NAME = 'examenes-app-v4';
 const ASSETS = [
     '/',
     '/index.html',
-    '/app.html',
     '/firebase-config.js',
     '/manifest.json'
 ];
@@ -22,6 +21,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
     e.respondWith(
-        fetch(e.request).catch(() => caches.match(e.request))
+        fetch(e.request).then(response => {
+            return response;
+        }).catch(() => caches.match(e.request))
     );
 });
