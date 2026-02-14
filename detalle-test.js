@@ -115,11 +115,8 @@ function crearPreguntaDetalle(detalle, index) {
     `;
     
     // Mostrar opciones
-    const opciones = detalle.opciones || [];
-    opciones.forEach((opcion, i) => {
+    (detalle.opciones || []).forEach((opcion, i) => {
         let estiloOpcion = 'padding: 8px 12px; margin: 4px 0; border-radius: 6px; font-size: 14px;';
-        
-        const textoOpcion = typeof opcion === 'string' ? opcion : 'Opción sin texto';
         
         if (i === detalle.respuestaCorrecta) {
             // Respuesta correcta
@@ -131,7 +128,7 @@ function crearPreguntaDetalle(detalle, index) {
             estiloOpcion += 'background: #f5f5f5; border: 2px solid #e0e0e0;';
         }
         
-        html += `<div style="${estiloOpcion}">${String.fromCharCode(65 + i)}) ${textoOpcion}</div>`;
+        html += `<div style="${estiloOpcion}">${String.fromCharCode(65 + i)}) ${opcion}</div>`;
     });
     
     // Mostrar explicaciones si existen (manual, Gemini o PDF)
