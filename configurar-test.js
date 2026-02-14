@@ -268,7 +268,7 @@ function repetirUltimosParametros() {
 
     // Esperar un momento para que el DOM se actualice
     setTimeout(() => {
-        // Marcar los subtemas y temas
+        // Marcar los subtemas primero
         parametros.subtemas.forEach(subtemaId => {
             // Buscar checkbox de subtema
             const checkboxSubtema = document.querySelector(`input[data-subtema-id="${subtemaId}"]`);
@@ -277,40 +277,31 @@ function repetirUltimosParametros() {
                 checkboxSubtema.dispatchEvent(new Event('change'));
             }
             
-            // Buscar checkbox de tema padre
+            // Buscar checkbox de tema padre (por si es un tema sin subtemas)
             const checkboxTema = document.querySelector(`input[data-tema-id="${subtemaId}"]`);
             if (checkboxTema && !checkboxTema.checked) {
                 checkboxTema.checked = true;
-                checkboxTema.dispatchEvent(new Event('change'));
             }
         });
         
-        // Verificar temas padre: si TODOS sus subtemas están marcados, marcar el tema
-        temasDisponibles.forEach(tema => {
-            const checkboxTema = document.querySelector(`input[data-tema-id="${tema.id}"]`);
-            if (!checkboxTema) return;
+        // Ahora verificar cada tema padre
+        document.querySelectorAll('input[data-tema-id]').forEach(checkboxTema => {
+            const temaItem = checkboxTema.closest('.tema-item');
+            if (!temaItem) return;
             
-            // Obtener todos los checkboxes de subtemas que están visibles en el DOM
-            const todosCheckboxesSubtemas = Array.from(document.querySelectorAll(`input[data-subtema-id]`));
+            // Buscar todos los checkboxes de subtemas dentro de este tema
+            const checkboxesSubtemas = temaItem.querySelectorAll('input[data-subtema-id]');
             
-            // Filtrar solo los que pertenecen a este tema (están dentro del contenedor del tema)
-            const subtemasDelTemaEnDOM = todosCheckboxesSubtemas.filter(checkbox => {
-                return checkbox.closest('.tema-item') === checkboxTema.closest('.tema-item');
-            });
+            if (checkboxesSubtemas.length === 0) return; // No tiene subtemas
             
-            // Verificar cuántos están marcados
-            const subtemasDelTemaMarcados = subtemasDelTemaEnDOM.filter(checkbox => {
-                const subtemaId = checkbox.getAttribute('data-subtema-id');
-                return parametros.subtemas.includes(subtemaId);
-            });
+            // Verificar si TODOS los subtemas están marcados
+            const todosLosMarcados = Array.from(checkboxesSubtemas).every(cb => cb.checked);
             
-            // Si TODOS los subtemas de este tema están marcados, marcar el tema padre
-            if (subtemasDelTemaEnDOM.length > 0 && 
-                subtemasDelTemaMarcados.length === subtemasDelTemaEnDOM.length) {
+            if (todosLosMarcados) {
                 checkboxTema.checked = true;
             }
         });
-    }, 100);
+    }, 150);
 
     // Marcar cantidad
     const btnCantidad = document.querySelector(`[data-cantidad="${parametros.cantidad}"]`);
