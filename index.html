@@ -130,7 +130,8 @@
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (e) {
-                errorMsg.textContent = 'Email o contraseña incorrectos';
+                console.error('Error login:', e);
+                errorMsg.textContent = 'Error: ' + e.code + ' - ' + e.message;
                 errorMsg.style.display = 'block';
             }
         };
