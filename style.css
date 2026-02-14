@@ -87,6 +87,39 @@ main {
     color: white;
 }
 
+.btn-repetir {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+    background: #3b82f6;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.btn-falladas {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+    background: #ef4444;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.btn-repetir:active,
+.btn-falladas:active {
+    transform: scale(0.98);
+}
+
 .btn-primary:active,
 .btn-secondary:active,
 .btn-logout:active,
