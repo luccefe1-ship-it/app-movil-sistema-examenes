@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "504614396126",
+    "project_id": "plataforma-examenes-f2df9",
+    "storage_bucket": "plataforma-examenes-f2df9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:504614396126:android:7acd6536849f059521224f",
+        "android_client_info": {
+          "package_name": "com.example.app_movil_sistema_examenes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi-LCVPrc_HfTYfpQPRY9nyItYgKcvMuc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
