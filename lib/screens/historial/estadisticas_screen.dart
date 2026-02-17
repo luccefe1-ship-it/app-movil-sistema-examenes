@@ -99,8 +99,11 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
           test['detalleRespuestas'] as List<dynamic>? ?? [];
       for (final d in detalles) {
         final det = d as Map<String, dynamic>;
-        final temaNombre =
+        String temaNombre =
             (det['temaNombre'] as String?)?.trim() ?? '';
+        if (temaNombre.isEmpty) {
+          temaNombre = (det['temaId'] as String?)?.trim() ?? '';
+        }
         if (temaNombre.isEmpty) continue;
 
         final estado = det['estado'] as String? ?? '';
@@ -327,29 +330,9 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
 
   // ── ANÁLISIS DE TEMAS ─────────────────────────
   Widget _buildAnalisisTemas() {
-    if (_temasOrdenados.isEmpty) {
-      return Card(
-        color: AppColors.cardBackground,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text(
-            'Necesitas más tests para generar un análisis por temas.',
-            style: GoogleFonts.inter(color: AppColors.textSecondary),
-          ),
-        ),
-      );
-    }
-
-    final mejores = _temasOrdenados
-        .where((t) => t.porcentajeFallo < 25)
-        .take(3)
-        .toList();
-    final peores = _temasOrdenados.reversed
-        .where((t) => t.porcentajeFallo >= 30)
-        .take(3)
-        .toList();
+    // Tomar los 3 peores (más fallos) y los 3 mejores (menos fallos)
+    final peores = _temasOrdenados.reversed.take(3).toList();
+    final mejores = _temasOrdenados.take(3).toList();
 
     final analisis = _generarAnalisis(mejores, peores);
 
