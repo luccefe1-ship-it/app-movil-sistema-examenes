@@ -1,41 +1,26 @@
 name: app_movil_sistema_examenes
 description: "A new Flutter project."
 publish_to: 'none'
-
 version: 1.0.0+1
-
 environment:
   sdk: ^3.5.4
-
 dependencies:
   flutter:
     sdk: flutter
-
-  # Firebase (VERSIONES ACTUALIZADAS)
   firebase_core: ^3.3.0
   firebase_auth: ^5.1.4
   cloud_firestore: ^5.2.1
-  
-  # Estado
   provider: ^6.1.1
-  
-  # UI
   google_fonts: ^6.1.0
-  
-  # Utilidades
   intl: ^0.18.1
   shared_preferences: ^2.2.2
-  
-  # Iconos
   cupertino_icons: ^1.0.8
-
+  fl_chart: ^0.68.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^4.0.0
   flutter_launcher_icons: ^0.14.4
-
 flutter:
   uses-material-design: true
 flutter_launcher_icons:

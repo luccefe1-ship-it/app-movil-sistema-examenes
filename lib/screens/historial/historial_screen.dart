@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../../services/test_service.dart';
 import '../../services/temas_service.dart';
 import '../test/detalle_test_screen.dart';
+import 'estadisticas_screen.dart';
 
 class HistorialScreen extends StatefulWidget {
   const HistorialScreen({super.key});
@@ -77,7 +78,10 @@ class _HistorialScreenState extends State<HistorialScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        title: Text('Eliminar test', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        title: Text('Eliminar test',
+            style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
         content: Text(
           '¿Eliminar "$nombreTest"?\n\nEsta acción no se puede deshacer.',
           style: GoogleFonts.inter(color: AppColors.textSecondary),
@@ -85,7 +89,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar', style: TextStyle(color: AppColors.neutral)),
+            child:
+                Text('Cancelar', style: TextStyle(color: AppColors.neutral)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -108,23 +113,41 @@ class _HistorialScreenState extends State<HistorialScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Historial de Tests', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text('Historial de Tests',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Estadísticas',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const EstadisticasScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child:
+                  CircularProgressIndicator(color: AppColors.primary))
           : _historial.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.history, size: 80, color: AppColors.neutral),
+                      Icon(Icons.history,
+                          size: 80, color: AppColors.neutral),
                       const SizedBox(height: 16),
                       Text(
                         'No hay tests realizados',
-                        style: GoogleFonts.inter(fontSize: 18, color: AppColors.textSecondary),
+                        style: GoogleFonts.inter(
+                            fontSize: 18,
+                            color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -183,7 +206,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
       child: Card(
         color: AppColors.cardBackground,
         margin: const EdgeInsets.only(bottom: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: () {
             final temasService = context.read<TemasService>();
@@ -218,13 +242,16 @@ class _HistorialScreenState extends State<HistorialScreen> {
                       const SizedBox(height: 4),
                       Text(
                         fechaTexto,
-                        style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
+                        style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: puntuacion >= 50
                                   ? AppColors.success.withOpacity(0.2)
@@ -243,22 +270,33 @@ class _HistorialScreenState extends State<HistorialScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Icon(Icons.check_circle, size: 16, color: AppColors.success),
+                          Icon(Icons.check_circle,
+                              size: 16, color: AppColors.success),
                           const SizedBox(width: 4),
-                          Text('$correctas', style: GoogleFonts.inter(fontSize: 13, color: AppColors.success)),
+                          Text('$correctas',
+                              style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppColors.success)),
                           const SizedBox(width: 8),
-                          Icon(Icons.cancel, size: 16, color: AppColors.error),
+                          Icon(Icons.cancel,
+                              size: 16, color: AppColors.error),
                           const SizedBox(width: 4),
-                          Text('$incorrectas', style: GoogleFonts.inter(fontSize: 13, color: AppColors.error)),
+                          Text('$incorrectas',
+                              style: GoogleFonts.inter(
+                                  fontSize: 13, color: AppColors.error)),
                           const SizedBox(width: 4),
-                          Text('/ $total', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary)),
+                          Text('/ $total',
+                              style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary)),
                         ],
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  onPressed: () => _confirmarEliminacion(test['id'], index, nombre),
+                  onPressed: () =>
+                      _confirmarEliminacion(test['id'], index, nombre),
                   icon: const Icon(Icons.delete_outline),
                   color: AppColors.error,
                 ),
@@ -286,20 +324,23 @@ class DetalleTestHistorialScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final testInfo = testData['test'] as Map<String, dynamic>? ?? {};
     final nombre = testInfo['nombre'] ?? 'Test sin nombre';
-    final detalleRespuestas = testData['detalleRespuestas'] as List<dynamic>? ?? [];
+    final detalleRespuestas =
+        testData['detalleRespuestas'] as List<dynamic>? ?? [];
 
     final preguntas = <PreguntaEmbebida>[];
     final respuestasUsuario = <String, String?>{};
 
     for (var detalle in detalleRespuestas) {
       final d = detalle as Map<String, dynamic>;
-      final preguntaData = d['pregunta'] as Map<String, dynamic>? ?? {};
-      final opcionesData = preguntaData['opciones'] as List<dynamic>? ?? [];
+      final preguntaData =
+          d['pregunta'] as Map<String, dynamic>? ?? {};
+      final opcionesData =
+          preguntaData['opciones'] as List<dynamic>? ?? [];
 
       final temaId = d['temaId'] ?? '';
       final indice = d['indice'] ?? 0;
       final preguntaId = '${temaId}_$indice';
-      final temaNombre = d['temaNombre'] as String?; // ← lee temaNombre de Firebase
+      final temaNombre = d['temaNombre'] as String?;
 
       final opciones = opcionesData.map((o) {
         final opcion = o as Map<String, dynamic>;
@@ -317,7 +358,7 @@ class DetalleTestHistorialScreen extends StatelessWidget {
         respuestaCorrecta: d['respuestaCorrecta'] ?? '',
         indexEnTema: indice,
         explicacion: preguntaData['explicacion'],
-        temaNombre: temaNombre, // ← pasa temaNombre al widget
+        temaNombre: temaNombre,
       ));
 
       respuestasUsuario[preguntaId] = d['respuestaUsuario'];
