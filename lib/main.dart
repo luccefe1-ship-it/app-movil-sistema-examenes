@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'firebase_options.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'config/firebase_options.dart';
 import 'config/app_colors.dart';
 import 'services/auth_service.dart';
+import 'services/temas_service.dart';
+import 'services/test_service.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/home/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Inicializar Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
   runApp(const MyApp());
 }
 
@@ -25,22 +26,31 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
-        // Aquí agregaremos más servicios después
+        ChangeNotifierProvider(create: (_) => TemasService()),
+        ChangeNotifierProvider(create: (_) => TestService()),
       ],
       child: MaterialApp(
         title: 'Sistema de Exámenes',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primaryColor: AppColors.primary,
-          scaffoldBackgroundColor: AppColors.background,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
+          colorScheme: ColorScheme.dark(
             primary: AppColors.primary,
-            secondary: AppColors.secondary,
+            surface: AppColors.surface,
+            background: AppColors.background,
           ),
+          scaffoldBackgroundColor: AppColors.background,
+          cardColor: AppColors.cardBackground,
+          textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
           useMaterial3: true,
         ),
-        home: const LoginScreen(),
+        home: Consumer<AuthService>(
+          builder: (context, authService, _) {
+            if (authService.isAuthenticated) {
+              return const HomeScreen();
+            }
+            return const LoginScreen();
+          },
+        ),
       ),
     );
   }

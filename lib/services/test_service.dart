@@ -140,6 +140,7 @@ class TestService extends ChangeNotifier {
           respuestaCorrecta: pregunta.respuestaCorrecta,
           esAcierto: esAcierto,
           explicacion: pregunta.explicacion,
+          temaNombre: pregunta.temaNombre, // ← NUEVO: pasar tema padre
         ),
       );
     }

@@ -8,9 +8,16 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
     project.evaluationDependsOn(":app")
+
+    project.plugins.whenPluginAdded { plugin ->
+        if (plugin.class.name == "com.android.build.gradle.LibraryPlugin" ||
+            plugin.class.name == "com.android.build.gradle.AppPlugin") {
+            project.android {
+                compileSdkVersion 35
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

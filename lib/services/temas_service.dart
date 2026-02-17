@@ -1,83 +1,123 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/tema.dart';
-import '../models/subtema.dart';
 
 class TemasService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
-  List<Tema> _temas = [];
-  Map<String, List<Subtema>> _subtemasCache = {};
+  List<Tema> _temasPrincipales = [];
+  Map<String, List<Tema>> _subtemasPorPadre = {};
+  List<Tema> _todosTemas = [];
   bool _isLoading = false;
 
-  List<Tema> get temas => _temas;
+  List<Tema> get temasPrincipales => _temasPrincipales;
+  Map<String, List<Tema>> get subtemasPorPadre => _subtemasPorPadre;
+  List<Tema> get todosTemas => _todosTemas;
   bool get isLoading => _isLoading;
 
-  // Obtener todos los temas
-  Future<void> getTemas() async {
+  Future<void> cargarTemas(String usuarioId) async {
     _isLoading = true;
     notifyListeners();
 
     try {
       final snapshot = await _firestore
           .collection('temas')
-          .orderBy('orden')
+          .where('usuarioId', isEqualTo: usuarioId)
           .get();
 
-      _temas = snapshot.docs
-          .map((doc) => Tema.fromFirestore(doc.data(), doc.id))
-          .toList();
+      debugPrint('Total docs en temas: ${snapshot.docs.length}');
+
+      _todosTemas = snapshot.docs.map((doc) {
+        return Tema.fromFirestore(doc.data(), doc.id);
+      }).toList();
+
+      // Separar temas principales y subtemas
+      _temasPrincipales = _todosTemas.where((t) => !t.esSubtema).toList();
+      
+      _subtemasPorPadre = {};
+      for (var tema in _todosTemas.where((t) => t.esSubtema)) {
+        if (!_subtemasPorPadre.containsKey(tema.temaPadreId)) {
+          _subtemasPorPadre[tema.temaPadreId!] = [];
+        }
+        _subtemasPorPadre[tema.temaPadreId!]!.add(tema);
+      }
+
+      // Ordenar temas por número en nombre (Tema 1, Tema 2, etc.)
+      _temasPrincipales.sort(_ordenarPorNombre);
+
+      // Ordenar subtemas
+      for (var key in _subtemasPorPadre.keys) {
+        _subtemasPorPadre[key]!.sort(_ordenarPorNombre);
+      }
+
+      debugPrint('Temas principales: ${_temasPrincipales.length}');
+      debugPrint('Subtemas grupos: ${_subtemasPorPadre.length}');
+
     } catch (e) {
-      debugPrint('Error obteniendo temas: $e');
-      _temas = [];
+      debugPrint('Error cargando temas: $e');
+      _temasPrincipales = [];
+      _subtemasPorPadre = {};
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Obtener subtemas de un tema
-  Future<List<Subtema>> getSubtemas(String temaId) async {
-    // Verificar si ya están en caché
-    if (_subtemasCache.containsKey(temaId)) {
-      return _subtemasCache[temaId]!;
+  // Ordenamiento inteligente: extraer números del nombre
+  int _ordenarPorNombre(Tema a, Tema b) {
+    final numA = a.numeroExtraido;
+    final numB = b.numeroExtraido;
+    
+    if (numA != null && numB != null) {
+      return numA.compareTo(numB);
     }
-
-    try {
-      final snapshot = await _firestore
-          .collection('subtemas')
-          .where('temaId', isEqualTo: temaId)
-          .orderBy('orden')
-          .get();
-
-      final subtemas = snapshot.docs
-          .map((doc) => Subtema.fromFirestore(doc.data(), doc.id))
-          .toList();
-
-      // Guardar en caché
-      _subtemasCache[temaId] = subtemas;
-      
-      return subtemas;
-    } catch (e) {
-      debugPrint('Error obteniendo subtemas: $e');
-      return [];
-    }
+    return a.nombre.compareTo(b.nombre);
   }
 
-  // Limpiar caché de subtemas
-  void clearSubtemasCache() {
-    _subtemasCache.clear();
-    notifyListeners();
+  // Obtener subtemas de un tema padre
+  List<Tema> getSubtemas(String temaPadreId) {
+    return _subtemasPorPadre[temaPadreId] ?? [];
   }
 
-  // Stream de temas en tiempo real (opcional)
-  Stream<List<Tema>> temasStream() {
-    return _firestore
-        .collection('temas')
-        .orderBy('orden')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Tema.fromFirestore(doc.data(), doc.id))
-            .toList());
+  // Contar preguntas verificadas de un tema + sus subtemas
+  int contarPreguntasVerificadas(String temaId) {
+    int total = 0;
+    
+    // Preguntas del tema principal
+    final tema = _todosTemas.where((t) => t.id == temaId).firstOrNull;
+    if (tema != null) {
+      total += tema.numPreguntasVerificadas;
+    }
+    
+    // Preguntas de subtemas
+    final subtemas = _subtemasPorPadre[temaId] ?? [];
+    for (var sub in subtemas) {
+      total += sub.numPreguntasVerificadas;
+    }
+    
+    return total;
+  }
+
+  // Obtener preguntas verificadas de una lista de temas
+  List<PreguntaEmbebida> getPreguntasVerificadas(List<String> temasIds) {
+    List<PreguntaEmbebida> preguntas = [];
+    
+    for (var temaId in temasIds) {
+      final tema = _todosTemas.where((t) => t.id == temaId).firstOrNull;
+      if (tema != null) {
+        preguntas.addAll(tema.preguntas.where((p) => p.verificada));
+      }
+    }
+    
+    return preguntas;
+  }
+
+  // Obtener todas las preguntas verificadas del usuario
+  List<PreguntaEmbebida> getTodasPreguntasVerificadas() {
+    List<PreguntaEmbebida> preguntas = [];
+    for (var tema in _todosTemas) {
+      preguntas.addAll(tema.preguntas.where((p) => p.verificada));
+    }
+    return preguntas;
   }
 }

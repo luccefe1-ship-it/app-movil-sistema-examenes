@@ -6,6 +6,7 @@ class Pregunta {
   final String respuestaCorrecta;
   final int numOpciones;
   final String? explicacion;
+  final String? temaNombre; // Nombre del tema padre
 
   Pregunta({
     required this.id,
@@ -15,6 +16,7 @@ class Pregunta {
     required this.respuestaCorrecta,
     this.numOpciones = 4,
     this.explicacion,
+    this.temaNombre,
   });
 
   factory Pregunta.fromFirestore(Map<String, dynamic> data, String id) {
@@ -26,6 +28,20 @@ class Pregunta {
       respuestaCorrecta: data['respuestaCorrecta'] ?? '',
       numOpciones: data['numOpciones'] ?? 4,
       explicacion: data['explicacion'],
+    );
+  }
+
+  /// Crea una copia de la pregunta con el nombre del tema asignado
+  Pregunta conTemaNombre(String nombre) {
+    return Pregunta(
+      id: id,
+      subtemaId: subtemaId,
+      enunciado: enunciado,
+      opciones: opciones,
+      respuestaCorrecta: respuestaCorrecta,
+      numOpciones: numOpciones,
+      explicacion: explicacion,
+      temaNombre: nombre,
     );
   }
 

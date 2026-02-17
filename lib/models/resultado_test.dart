@@ -8,6 +8,7 @@ class PreguntaResultado {
   final String respuestaCorrecta;
   final bool esAcierto;
   final String? explicacion;
+  final String? temaNombre; // Nombre del tema padre
 
   PreguntaResultado({
     required this.preguntaId,
@@ -17,6 +18,7 @@ class PreguntaResultado {
     required this.respuestaCorrecta,
     required this.esAcierto,
     this.explicacion,
+    this.temaNombre,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,6 +30,7 @@ class PreguntaResultado {
       'respuestaCorrecta': respuestaCorrecta,
       'esAcierto': esAcierto,
       'explicacion': explicacion,
+      'temaNombre': temaNombre,
     };
   }
 
@@ -40,6 +43,7 @@ class PreguntaResultado {
       respuestaCorrecta: map['respuestaCorrecta'] ?? '',
       esAcierto: map['esAcierto'] ?? false,
       explicacion: map['explicacion'],
+      temaNombre: map['temaNombre'],
     );
   }
 }

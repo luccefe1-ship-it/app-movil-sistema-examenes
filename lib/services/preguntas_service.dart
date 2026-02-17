@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/pregunta.dart';
+import '../models/tema.dart';
+import '../models/subtema.dart';
 
 class PreguntasService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -10,18 +12,62 @@ class PreguntasService extends ChangeNotifier {
     if (subtemaIds.isEmpty) return [];
 
     try {
-      final snapshot = await _firestore
-          .collection('preguntas')
-          .where('subtemaId', whereIn: subtemaIds)
-          .get();
+      // Firestore permite máximo 30 elementos en 'whereIn'
+      // Si hay más, hacemos múltiples consultas
+      List<Pregunta> todasPreguntas = [];
 
-      return snapshot.docs
-          .map((doc) => Pregunta.fromFirestore(doc.data(), doc.id))
-          .toList();
+      for (int i = 0; i < subtemaIds.length; i += 30) {
+        final batch = subtemaIds.skip(i).take(30).toList();
+
+        final snapshot = await _firestore
+            .collection('preguntas')
+            .where('subtemaId', whereIn: batch)
+            .get();
+
+        todasPreguntas.addAll(
+          snapshot.docs
+              .map((doc) => Pregunta.fromFirestore(doc.data(), doc.id))
+              .toList(),
+        );
+      }
+
+      return todasPreguntas;
     } catch (e) {
       debugPrint('Error obteniendo preguntas: $e');
       return [];
     }
+  }
+
+  /// Asigna el nombre del tema padre a cada pregunta.
+  ///
+  /// [preguntas] - Lista de preguntas a enriquecer
+  /// [subtemas] - Lista de subtemas (contienen temaId)
+  /// [temas] - Lista de temas (contienen nombre)
+  ///
+  /// Devuelve una nueva lista con temaNombre asignado.
+  List<Pregunta> asignarTemaNombre({
+    required List<Pregunta> preguntas,
+    required List<Subtema> subtemas,
+    required List<Tema> temas,
+  }) {
+    // Crear mapa subtemaId -> temaId
+    final Map<String, String> subtemaToTema = {};
+    for (final subtema in subtemas) {
+      subtemaToTema[subtema.id] = subtema.temaId;
+    }
+
+    // Crear mapa temaId -> nombre
+    final Map<String, String> temaIdToNombre = {};
+    for (final tema in temas) {
+      temaIdToNombre[tema.id] = tema.nombre;
+    }
+
+    // Asignar temaNombre a cada pregunta
+    return preguntas.map((pregunta) {
+      final temaId = subtemaToTema[pregunta.subtemaId];
+      final temaNombre = temaId != null ? temaIdToNombre[temaId] : null;
+      return pregunta.conTemaNombre(temaNombre ?? 'Sin tema');
+    }).toList();
   }
 
   // Obtener N preguntas aleatorias de una lista

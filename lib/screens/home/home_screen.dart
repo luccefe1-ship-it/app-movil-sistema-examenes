@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
 import '../../config/app_colors.dart';
+import '../test/configurar_test_screen.dart';
+import '../historial/historial_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,9 +19,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Sistema de Exámenes',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -29,9 +29,6 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await authService.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/');
-              }
             },
             tooltip: 'Cerrar sesión',
           ),
@@ -43,7 +40,6 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Saludo
               Text(
                 '¡Hola, $userName!',
                 style: GoogleFonts.inter(
@@ -61,47 +57,34 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              
-              // Menú de opciones
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildMenuCard(
-                      context,
-                      icon: Icons.edit_note,
-                      title: 'Configurar Nuevo Test',
-                      subtitle: 'Crea un test personalizado',
-                      color: AppColors.primary,
-                      onTap: () {
-                        // TODO: Navegar a ConfigurarTestScreen
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Funcionalidad en desarrollo'),
-                          ),
-                        );
-                      },
+              _buildMenuCard(
+                context,
+                icon: Icons.edit_note,
+                title: 'Configurar Nuevo Test',
+                subtitle: 'Crea un test personalizado',
+                color: AppColors.primary,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ConfigurarTestScreen(),
                     ),
-                    const SizedBox(height: 16),
-                    
-                    const Spacer(),
-                    
-                    _buildMenuCard(
-                      context,
-                      icon: Icons.history,
-                      title: 'Historial de Tests',
-                      subtitle: 'Revisa tus tests anteriores',
-                      color: AppColors.secondary,
-                      onTap: () {
-                        // TODO: Navegar a HistorialScreen
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Funcionalidad en desarrollo'),
-                          ),
-                        );
-                      },
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildMenuCard(
+                context,
+                icon: Icons.history,
+                title: 'Historial de Tests',
+                subtitle: 'Revisa tus tests anteriores',
+                color: AppColors.secondary,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const HistorialScreen(),
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
             ],
           ),
@@ -120,9 +103,7 @@ class HomeScreen extends StatelessWidget {
   }) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -136,11 +117,7 @@ class HomeScreen extends StatelessWidget {
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: color,
-                ),
+                child: Icon(icon, size: 32, color: color),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -166,11 +143,7 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 20,
-                color: AppColors.textSecondary,
-              ),
+              Icon(Icons.arrow_forward_ios, size: 20, color: AppColors.textSecondary),
             ],
           ),
         ),
