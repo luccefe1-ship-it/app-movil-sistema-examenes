@@ -19,7 +19,8 @@ class Tema {
 
   bool get esSubtema => temaPadreId != null;
   int get numPreguntas => preguntas.length;
-  int get numPreguntasVerificadas => preguntas.where((p) => p.verificada).length;
+  int get numPreguntasVerificadas =>
+      preguntas.where((p) => p.verificada).length;
 
   factory Tema.fromFirestore(Map<String, dynamic> data, String id) {
     List<PreguntaEmbebida> preguntas = [];
@@ -56,6 +57,7 @@ class PreguntaEmbebida {
   final String respuestaCorrecta;
   final bool verificada;
   final String? explicacion;
+  final String? temaNombre; // Nombre del tema padre general
 
   PreguntaEmbebida({
     required this.temaId,
@@ -65,18 +67,36 @@ class PreguntaEmbebida {
     required this.respuestaCorrecta,
     this.verificada = false,
     this.explicacion,
+    this.temaNombre,
   });
 
   // ID único generado
   String get id => '${temaId}_$indexEnTema';
+
   int get numOpciones => opciones.length;
 
   String? get textoRespuestaCorrecta {
-    final opcion = opciones.where((o) => o.letra == respuestaCorrecta).firstOrNull;
+    final opcion =
+        opciones.where((o) => o.letra == respuestaCorrecta).firstOrNull;
     return opcion?.texto;
   }
 
-  factory PreguntaEmbebida.fromMap(Map<String, dynamic> map, String temaId, int index) {
+  /// Crea una copia con el nombre del tema padre asignado
+  PreguntaEmbebida conTemaNombre(String nombre) {
+    return PreguntaEmbebida(
+      temaId: temaId,
+      indexEnTema: indexEnTema,
+      texto: texto,
+      opciones: opciones,
+      respuestaCorrecta: respuestaCorrecta,
+      verificada: verificada,
+      explicacion: explicacion,
+      temaNombre: nombre,
+    );
+  }
+
+  factory PreguntaEmbebida.fromMap(
+      Map<String, dynamic> map, String temaId, int index) {
     List<OpcionPregunta> opciones = [];
     if (map['opciones'] != null && map['opciones'] is List) {
       opciones = (map['opciones'] as List).map((o) {
@@ -97,6 +117,7 @@ class PreguntaEmbebida {
       respuestaCorrecta: map['respuestaCorrecta'] ?? '',
       verificada: map['verificada'] == true,
       explicacion: map['explicacion'],
+      temaNombre: map['temaNombre'],
     );
   }
 }

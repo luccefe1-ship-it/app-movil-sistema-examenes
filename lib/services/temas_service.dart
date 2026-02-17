@@ -4,7 +4,7 @@ import '../models/tema.dart';
 
 class TemasService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   List<Tema> _temasPrincipales = [];
   Map<String, List<Tema>> _subtemasPorPadre = {};
   List<Tema> _todosTemas = [];
@@ -33,7 +33,7 @@ class TemasService extends ChangeNotifier {
 
       // Separar temas principales y subtemas
       _temasPrincipales = _todosTemas.where((t) => !t.esSubtema).toList();
-      
+
       _subtemasPorPadre = {};
       for (var tema in _todosTemas.where((t) => t.esSubtema)) {
         if (!_subtemasPorPadre.containsKey(tema.temaPadreId)) {
@@ -52,7 +52,6 @@ class TemasService extends ChangeNotifier {
 
       debugPrint('Temas principales: ${_temasPrincipales.length}');
       debugPrint('Subtemas grupos: ${_subtemasPorPadre.length}');
-
     } catch (e) {
       debugPrint('Error cargando temas: $e');
       _temasPrincipales = [];
@@ -67,7 +66,7 @@ class TemasService extends ChangeNotifier {
   int _ordenarPorNombre(Tema a, Tema b) {
     final numA = a.numeroExtraido;
     final numB = b.numeroExtraido;
-    
+
     if (numA != null && numB != null) {
       return numA.compareTo(numB);
     }
@@ -79,36 +78,56 @@ class TemasService extends ChangeNotifier {
     return _subtemasPorPadre[temaPadreId] ?? [];
   }
 
+  /// Obtener el nombre del tema padre general para un temaId dado.
+  /// Si el tema es un subtema, devuelve el nombre de su padre.
+  /// Si es un tema principal, devuelve su propio nombre.
+  String getNombreTemaPadre(String temaId) {
+    final tema = _todosTemas.where((t) => t.id == temaId).firstOrNull;
+    if (tema == null) return 'Sin tema';
+
+    if (tema.esSubtema && tema.temaPadreId != null) {
+      final padre = _todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
+      return padre?.nombre ?? tema.nombre;
+    }
+
+    return tema.nombre;
+  }
+
   // Contar preguntas verificadas de un tema + sus subtemas
   int contarPreguntasVerificadas(String temaId) {
     int total = 0;
-    
+
     // Preguntas del tema principal
     final tema = _todosTemas.where((t) => t.id == temaId).firstOrNull;
     if (tema != null) {
       total += tema.numPreguntasVerificadas;
     }
-    
+
     // Preguntas de subtemas
     final subtemas = _subtemasPorPadre[temaId] ?? [];
     for (var sub in subtemas) {
       total += sub.numPreguntasVerificadas;
     }
-    
+
     return total;
   }
 
-  // Obtener preguntas verificadas de una lista de temas
+  // Obtener preguntas verificadas de una lista de temas (CON temaNombre asignado)
   List<PreguntaEmbebida> getPreguntasVerificadas(List<String> temasIds) {
     List<PreguntaEmbebida> preguntas = [];
-    
+
     for (var temaId in temasIds) {
       final tema = _todosTemas.where((t) => t.id == temaId).firstOrNull;
       if (tema != null) {
-        preguntas.addAll(tema.preguntas.where((p) => p.verificada));
+        final nombrePadre = getNombreTemaPadre(temaId);
+        final verificadas = tema.preguntas
+            .where((p) => p.verificada)
+            .map((p) => p.conTemaNombre(nombrePadre))
+            .toList();
+        preguntas.addAll(verificadas);
       }
     }
-    
+
     return preguntas;
   }
 
@@ -116,7 +135,12 @@ class TemasService extends ChangeNotifier {
   List<PreguntaEmbebida> getTodasPreguntasVerificadas() {
     List<PreguntaEmbebida> preguntas = [];
     for (var tema in _todosTemas) {
-      preguntas.addAll(tema.preguntas.where((p) => p.verificada));
+      final nombrePadre = getNombreTemaPadre(tema.id);
+      final verificadas = tema.preguntas
+          .where((p) => p.verificada)
+          .map((p) => p.conTemaNombre(nombrePadre))
+          .toList();
+      preguntas.addAll(verificadas);
     }
     return preguntas;
   }

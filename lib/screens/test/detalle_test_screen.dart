@@ -24,7 +24,8 @@ class DetalleTestScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Detalle del Test', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text('Detalle del Test',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -32,15 +33,18 @@ class DetalleTestScreen extends StatelessWidget {
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: preguntas.length,
-        itemBuilder: (context, index) => _buildPreguntaCard(context, preguntas[index], index),
+        itemBuilder: (context, index) =>
+            _buildPreguntaCard(context, preguntas[index], index),
       ),
     );
   }
 
-  Widget _buildPreguntaCard(BuildContext context, PreguntaEmbebida pregunta, int index) {
+  Widget _buildPreguntaCard(
+      BuildContext context, PreguntaEmbebida pregunta, int index) {
     final respuesta = respuestasUsuario[pregunta.id];
     final enBlanco = respuesta == null;
-    final esCorrecta = !enBlanco && respuesta == pregunta.respuestaCorrecta;
+    final esCorrecta =
+        !enBlanco && respuesta == pregunta.respuestaCorrecta;
 
     Color statusColor;
     String statusText;
@@ -63,35 +67,81 @@ class DetalleTestScreen extends StatelessWidget {
     return Card(
       color: AppColors.cardBackground,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Cabecera: número + estado
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '${index + 1}',
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Icon(statusIcon, color: statusColor, size: 18),
                 const SizedBox(width: 4),
-                Text(statusText, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: statusColor)),
+                Text(statusText,
+                    style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor)),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(pregunta.texto, style: GoogleFonts.inter(fontSize: 15, height: 1.5, color: AppColors.textPrimary)),
+            const SizedBox(height: 8),
+
+            // Etiqueta del tema padre
+            if (pregunta.temaNombre != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.folder_outlined, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        pregunta.temaNombre!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Enunciado
+            Text(pregunta.texto,
+                style: GoogleFonts.inter(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: AppColors.textPrimary)),
             const SizedBox(height: 12),
 
+            // Opciones
             ...pregunta.opciones.map((opcion) {
               final isUserAnswer = respuesta == opcion.letra;
               final isCorrectOption = opcion.esCorrecta;
@@ -109,7 +159,8 @@ class DetalleTestScreen extends StatelessWidget {
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(8),
@@ -134,15 +185,25 @@ class DetalleTestScreen extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: (isCorrectOption || isUserAnswer) ? Colors.white : AppColors.textPrimary,
+                            color: (isCorrectOption || isUserAnswer)
+                                ? Colors.white
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(child: Text(opcion.texto, style: GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary))),
-                    if (isCorrectOption) const Icon(Icons.check_circle, color: AppColors.success, size: 18),
-                    if (isUserAnswer && !isCorrectOption) const Icon(Icons.cancel, color: AppColors.error, size: 18),
+                    Expanded(
+                        child: Text(opcion.texto,
+                            style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: AppColors.textPrimary))),
+                    if (isCorrectOption)
+                      const Icon(Icons.check_circle,
+                          color: AppColors.success, size: 18),
+                    if (isUserAnswer && !isCorrectOption)
+                      const Icon(Icons.cancel,
+                          color: AppColors.error, size: 18),
                   ],
                 ),
               );
@@ -163,12 +224,15 @@ class DetalleTestScreen extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.menu_book, size: 16),
-                label: Text('Ver Explicación', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                label: Text('Ver Explicación',
+                    style: GoogleFonts.inter(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ),
