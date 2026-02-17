@@ -85,8 +85,8 @@ class TestService extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────
-  // GUARDAR RESULTADO EN FIREBASE
-  // Compatible con la estructura existente de la plataforma web
+  // GUARDAR RESULTADO + ACTUALIZAR FALLADAS
+  // Mismo formato que la plataforma web
   // ─────────────────────────────────────────────
 
   Future<bool> guardarResultado({
@@ -113,19 +113,16 @@ class TestService extends ChangeNotifier {
                   : 'incorrecta',
           'pregunta': {
             'texto': p.texto,
-            'opciones': p.opciones
-                .map((o) => {
-                      'letra': o.letra,
-                      'texto': o.texto,
-                      'esCorrecta': o.esCorrecta,
-                    })
-                .toList(),
-            'respuestaCorrecta': p.respuestaCorrecta,
-            'explicacion': p.explicacion,
             'temaId': p.temaId,
             'temaNombre': p.temaNombre ?? '',
             'temaEpigrafe': '',
-            'texto': p.texto,
+            'opciones': p.opciones.map((o) => {
+              'letra': o.letra,
+              'texto': o.texto,
+              'esCorrecta': o.esCorrecta,
+            }).toList(),
+            'respuestaCorrecta': p.respuestaCorrecta,
+            'explicacion': p.explicacion,
           },
           'respuestaCorrecta': p.respuestaCorrecta,
           'respuestaUsuario': respuesta,
@@ -136,6 +133,7 @@ class TestService extends ChangeNotifier {
       final correctas = resultados['correctas'] as int;
       final porcentaje = total > 0 ? ((correctas / total) * 100).round() : 0;
 
+      // Guardar resultado (misma estructura que la web)
       await _firestore.collection('resultados').add({
         'usuarioId': usuarioId,
         'test': {
@@ -154,11 +152,77 @@ class TestService extends ChangeNotifier {
         'detalleRespuestas': detalleRespuestas,
       });
 
+      // Actualizar preguntasFalladas (igual que la web)
+      await _actualizarPreguntasFalladas(
+        usuarioId: usuarioId,
+        preguntas: preguntas,
+        respuestasUsuario: respuestasUsuario,
+      );
+
       return true;
     } catch (e) {
       debugPrint('Error guardando resultado: $e');
       return false;
     }
+  }
+
+  /// Añade falladas nuevas y elimina las que se han acertado en este test
+  Future<void> _actualizarPreguntasFalladas({
+    required String usuarioId,
+    required List<PreguntaEmbebida> preguntas,
+    required Map<String, String?> respuestasUsuario,
+  }) async {
+    final batch = _firestore.batch();
+    final colRef = _firestore.collection('preguntasFalladas');
+
+    // Obtener falladas actuales del usuario
+    final snapshot = await colRef
+        .where('usuarioId', isEqualTo: usuarioId)
+        .get();
+
+    final falladasActuales = <String, String>{}; // key: temaId_indice, value: docId
+    for (final doc in snapshot.docs) {
+      final d = doc.data();
+      final key = '${d['temaId']}_${d['indice']}';
+      falladasActuales[key] = doc.id;
+    }
+
+    for (final p in preguntas) {
+      final respuesta = respuestasUsuario[p.id];
+      final key = '${p.temaId}_${p.indexEnTema}';
+
+      if (respuesta == null) continue; // sin responder → no tocar
+
+      if (respuesta == p.respuestaCorrecta) {
+        // Acertada → eliminar de falladas si existía
+        if (falladasActuales.containsKey(key)) {
+          batch.delete(colRef.doc(falladasActuales[key]!));
+        }
+      } else {
+        // Fallada → añadir si no existía
+        if (!falladasActuales.containsKey(key)) {
+          final newDoc = colRef.doc();
+          batch.set(newDoc, {
+            'usuarioId': usuarioId,
+            'temaId': p.temaId,
+            'indice': p.indexEnTema,
+            'temaNombre': p.temaNombre ?? '',
+            'pregunta': {
+              'texto': p.texto,
+              'opciones': p.opciones.map((o) => {
+                'letra': o.letra,
+                'texto': o.texto,
+                'esCorrecta': o.esCorrecta,
+              }).toList(),
+              'respuestaCorrecta': p.respuestaCorrecta,
+            },
+            'fechaFallo': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    }
+
+    await batch.commit();
   }
 
   // ─────────────────────────────────────────────
@@ -176,12 +240,11 @@ class TestService extends ChangeNotifier {
         final data = doc.data();
         data['id'] = doc.id;
 
-        // Normalizar: la pantalla espera 'total' y 'puntuacion' en raíz
+        // Normalizar campos para la pantalla
         final testMap = data['test'] as Map<String, dynamic>? ?? {};
         if (!data.containsKey('total')) {
           data['total'] = testMap['total'] ?? 0;
         }
-        // La web guarda 'porcentaje', la pantalla espera 'puntuacion'
         if (!data.containsKey('puntuacion')) {
           data['puntuacion'] = data['porcentaje'] ?? 0;
         }
@@ -189,7 +252,6 @@ class TestService extends ChangeNotifier {
         return data;
       }).toList();
 
-      // Ordenar localmente por fechaCreacion (más reciente primero)
       lista.sort((a, b) {
         final fechaA = a['fechaCreacion'];
         final fechaB = b['fechaCreacion'];
@@ -234,76 +296,59 @@ class TestService extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────
-  // PREGUNTAS FALLADAS
+  // PREGUNTAS FALLADAS (desde colección preguntasFalladas)
   // ─────────────────────────────────────────────
 
   Future<int> contarPreguntasFalladas(String usuarioId) async {
-    final falladas = await _getPreguntasFalladasRaw(usuarioId);
-    return falladas.length;
+    try {
+      final snapshot = await _firestore
+          .collection('preguntasFalladas')
+          .where('usuarioId', isEqualTo: usuarioId)
+          .get();
+      return snapshot.docs.length;
+    } catch (e) {
+      debugPrint('Error contando falladas: $e');
+      return 0;
+    }
   }
 
   Future<List<PreguntaEmbebida>> getPreguntasFalladas(
     String usuarioId,
     List<Tema> todosTemas,
   ) async {
-    final raw = await _getPreguntasFalladasRaw(usuarioId);
-    final resultado = <PreguntaEmbebida>[];
-    final vistas = <String>{};
-
-    for (final item in raw) {
-      final temaId = item['temaId'] as String?;
-      final indice = item['indice'] as int?;
-      if (temaId == null || indice == null) continue;
-
-      final key = '${temaId}_$indice';
-      if (vistas.contains(key)) continue;
-      vistas.add(key);
-
-      final tema = todosTemas.where((t) => t.id == temaId).firstOrNull;
-      if (tema == null) continue;
-
-      if (indice >= 0 && indice < tema.preguntas.length) {
-        final p = tema.preguntas[indice];
-        String temaNombre = tema.nombre;
-        if (tema.esSubtema) {
-          final padre =
-              todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
-          if (padre != null) temaNombre = padre.nombre;
-        }
-        resultado.add(p.conTemaNombre(temaNombre));
-      }
-    }
-
-    return resultado;
-  }
-
-  Future<List<Map<String, dynamic>>> _getPreguntasFalladasRaw(
-      String usuarioId) async {
     try {
       final snapshot = await _firestore
-          .collection('resultados')
+          .collection('preguntasFalladas')
           .where('usuarioId', isEqualTo: usuarioId)
           .get();
 
-      final falladas = <Map<String, dynamic>>[];
+      final resultado = <PreguntaEmbebida>[];
+
       for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final detalles = data['detalleRespuestas'] as List<dynamic>? ?? [];
-        for (final detalle in detalles) {
-          final d = detalle as Map<String, dynamic>;
-          final estado = d['estado'] as String? ?? '';
-          // Compatible con formato web ('estado') y app ('esAcierto')
-          final esFallo = estado == 'incorrecta' ||
-              (d.containsKey('esAcierto') && d['esAcierto'] == false);
-          final respuesta = d['respuestaUsuario'];
-          if (esFallo && respuesta != null) {
-            falladas.add(d);
+        final d = doc.data();
+        final temaId = d['temaId'] as String?;
+        final indice = d['indice'] as int?;
+        if (temaId == null || indice == null) continue;
+
+        final tema = todosTemas.where((t) => t.id == temaId).firstOrNull;
+        if (tema == null) continue;
+
+        if (indice >= 0 && indice < tema.preguntas.length) {
+          final p = tema.preguntas[indice];
+          String temaNombre = tema.nombre;
+          if (tema.esSubtema) {
+            final padre = todosTemas
+                .where((t) => t.id == tema.temaPadreId)
+                .firstOrNull;
+            if (padre != null) temaNombre = padre.nombre;
           }
+          resultado.add(p.conTemaNombre(temaNombre));
         }
       }
-      return falladas;
+
+      return resultado;
     } catch (e) {
-      debugPrint('Error obteniendo preguntas falladas: $e');
+      debugPrint('Error obteniendo falladas: $e');
       return [];
     }
   }
@@ -325,8 +370,7 @@ class TestService extends ChangeNotifier {
     return null;
   }
 
-  Future<String?> obtenerSubrayados(
-      String userId, String preguntaTexto) async {
+  Future<String?> obtenerSubrayados(String userId, String preguntaTexto) async {
     try {
       final snapshot = await _firestore
           .collection('subrayados')
