@@ -295,4 +295,20 @@ class TestService extends ChangeNotifier {
       return false;
     }
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // MÉTODOS PARA EXPLICACION_MODAL (funcionalidad futura)
+  // ─────────────────────────────────────────────────────────────
+
+  Future<String?> obtenerTemaDigital(String temaId) async {
+    return null;
+  }
+
+  Future<String?> obtenerSubrayados(String userId, String preguntaTexto) async {
+    return null;
+  }
+
+  Future<String?> obtenerExplicacionGemini(String userId, String preguntaTexto) async {
+    return null;
+  }
 }
