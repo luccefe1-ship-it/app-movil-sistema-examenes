@@ -3,45 +3,46 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/tema.dart';
-import '../models/test_config.dart';
 
 class TestService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  TestConfig? _ultimaConfiguracion;
-  TestConfig? get ultimaConfiguracion => _ultimaConfiguracion;
 
   // ─────────────────────────────────────────────
   // CONFIGURACIÓN
   // ─────────────────────────────────────────────
 
-  Future<void> guardarConfiguracion(TestConfig config) async {
-    _ultimaConfiguracion = config;
+  Future<void> guardarConfiguracion(
+    String nombre,
+    List<String> temasIds,
+    int numPreguntas,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('ultima_config', jsonEncode(config.toMap()));
+      await prefs.setString('ultima_config', jsonEncode({
+        'nombre': nombre,
+        'temasIds': temasIds,
+        'numPreguntas': numPreguntas,
+      }));
     } catch (e) {
       debugPrint('Error guardando configuración: $e');
     }
-    notifyListeners();
   }
 
-  Future<void> cargarUltimaConfiguracion() async {
+  Future<Map<String, dynamic>?> cargarUltimaConfiguracion() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final json = prefs.getString('ultima_config');
       if (json != null) {
-        final map = jsonDecode(json) as Map<String, dynamic>;
-        _ultimaConfiguracion = TestConfig.fromMap(map);
-        notifyListeners();
+        return jsonDecode(json) as Map<String, dynamic>;
       }
     } catch (e) {
       debugPrint('Error cargando configuración: $e');
     }
+    return null;
   }
 
   // ─────────────────────────────────────────────
-  // CALCULAR RESULTADOS (se llama en RealizarTestScreen)
+  // CALCULAR RESULTADOS
   // ─────────────────────────────────────────────
 
   Map<String, dynamic> calcularResultados({
@@ -66,8 +67,10 @@ class TestService extends ChangeNotifier {
     final total = preguntas.length;
     final penalizacion = incorrectas / 3.0;
     final aciertosNetos = correctas - penalizacion;
-    final puntuacion = total > 0 ? (aciertosNetos / total * 100).round().clamp(0, 100) : 0;
-    final notaExamen = total > 0 ? (aciertosNetos / total * 60).clamp(0, 60) : 0;
+    final puntuacion =
+        total > 0 ? (aciertosNetos / total * 100).round().clamp(0, 100) : 0;
+    final notaExamen =
+        total > 0 ? (aciertosNetos / total * 60).clamp(0.0, 60.0) : 0.0;
 
     return {
       'total': total,
@@ -102,11 +105,13 @@ class TestService extends ChangeNotifier {
           'temaNombre': p.temaNombre ?? '',
           'pregunta': {
             'texto': p.texto,
-            'opciones': p.opciones.map((o) => {
-              'letra': o.letra,
-              'texto': o.texto,
-              'esCorrecta': o.esCorrecta,
-            }).toList(),
+            'opciones': p.opciones
+                .map((o) => {
+                      'letra': o.letra,
+                      'texto': o.texto,
+                      'esCorrecta': o.esCorrecta,
+                    })
+                .toList(),
             'explicacion': p.explicacion,
           },
           'respuestaCorrecta': p.respuestaCorrecta,
@@ -142,12 +147,11 @@ class TestService extends ChangeNotifier {
   }
 
   // ─────────────────────────────────────────────
-  // OBTENER HISTORIAL
+  // HISTORIAL
   // ─────────────────────────────────────────────
 
   Future<List<Map<String, dynamic>>> getHistorial(String usuarioId) async {
     try {
-      // Sin orderBy para evitar requerir índice compuesto en Firestore
       final snapshot = await _firestore
           .collection('resultados_tests')
           .where('usuarioId', isEqualTo: usuarioId)
@@ -159,7 +163,6 @@ class TestService extends ChangeNotifier {
         return data;
       }).toList();
 
-      // Ordenar localmente por fechaCreacion (más reciente primero)
       lista.sort((a, b) {
         final fechaA = a['fechaCreacion'];
         final fechaB = b['fechaCreacion'];
@@ -179,10 +182,6 @@ class TestService extends ChangeNotifier {
       return [];
     }
   }
-
-  // ─────────────────────────────────────────────
-  // ELIMINAR RESULTADO
-  // ─────────────────────────────────────────────
 
   Future<bool> eliminarResultado(String testId) async {
     try {
@@ -233,21 +232,17 @@ class TestService extends ChangeNotifier {
       if (vistas.contains(key)) continue;
       vistas.add(key);
 
-      // Buscar el tema en la lista
       final tema = todosTemas.where((t) => t.id == temaId).firstOrNull;
       if (tema == null) continue;
 
-      // Buscar la pregunta en ese tema por índice
       if (indice >= 0 && indice < tema.preguntas.length) {
         final p = tema.preguntas[indice];
-
-        // Resolver temaNombre
         String temaNombre = tema.nombre;
         if (tema.esSubtema) {
-          final padre = todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
+          final padre =
+              todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
           if (padre != null) temaNombre = padre.nombre;
         }
-
         resultado.add(p.conTemaNombre(temaNombre));
       }
     }
@@ -255,8 +250,8 @@ class TestService extends ChangeNotifier {
     return resultado;
   }
 
-  /// Devuelve la lista raw de respuestas falladas de todos los tests del usuario
-  Future<List<Map<String, dynamic>>> _getPreguntasFalladasRaw(String usuarioId) async {
+  Future<List<Map<String, dynamic>>> _getPreguntasFalladasRaw(
+      String usuarioId) async {
     try {
       final snapshot = await _firestore
           .collection('resultados_tests')
@@ -281,5 +276,57 @@ class TestService extends ChangeNotifier {
       debugPrint('Error obteniendo preguntas falladas: $e');
       return [];
     }
+  }
+
+  // ─────────────────────────────────────────────
+  // MÉTODOS PARA EXPLICACION_MODAL
+  // ─────────────────────────────────────────────
+
+  Future<String?> obtenerTemaDigital(String temaId) async {
+    try {
+      final doc =
+          await _firestore.collection('temas_digital').doc(temaId).get();
+      if (doc.exists) {
+        return doc.data()?['contenido'] as String?;
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo tema digital: $e');
+    }
+    return null;
+  }
+
+  Future<String?> obtenerSubrayados(
+      String userId, String preguntaTexto) async {
+    try {
+      final snapshot = await _firestore
+          .collection('subrayados')
+          .where('usuarioId', isEqualTo: userId)
+          .where('preguntaTexto', isEqualTo: preguntaTexto)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.data()['html'] as String?;
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo subrayados: $e');
+    }
+    return null;
+  }
+
+  Future<String?> obtenerExplicacionGemini(
+      String userId, String preguntaTexto) async {
+    try {
+      final snapshot = await _firestore
+          .collection('explicaciones_gemini')
+          .where('preguntaTexto', isEqualTo: preguntaTexto)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.data()['explicacion'] as String?;
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo explicación Gemini: $e');
+    }
+    return null;
   }
 }
