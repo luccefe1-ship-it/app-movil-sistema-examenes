@@ -86,6 +86,7 @@ class TestService extends ChangeNotifier {
 
   // ─────────────────────────────────────────────
   // GUARDAR RESULTADO EN FIREBASE
+  // Compatible con la estructura existente de la plataforma web
   // ─────────────────────────────────────────────
 
   Future<bool> guardarResultado({
@@ -99,10 +100,17 @@ class TestService extends ChangeNotifier {
     try {
       final detalleRespuestas = preguntas.map((p) {
         final respuesta = respuestasUsuario[p.id];
+        final esAcierto = respuesta == p.respuestaCorrecta;
         return {
           'temaId': p.temaId,
           'indice': p.indexEnTema,
           'temaNombre': p.temaNombre ?? '',
+          'temaEpigrafe': '',
+          'estado': respuesta == null
+              ? 'sinResponder'
+              : esAcierto
+                  ? 'correcta'
+                  : 'incorrecta',
           'pregunta': {
             'texto': p.texto,
             'opciones': p.opciones
@@ -112,29 +120,36 @@ class TestService extends ChangeNotifier {
                       'esCorrecta': o.esCorrecta,
                     })
                 .toList(),
+            'respuestaCorrecta': p.respuestaCorrecta,
             'explicacion': p.explicacion,
+            'temaId': p.temaId,
+            'temaNombre': p.temaNombre ?? '',
+            'temaEpigrafe': '',
+            'texto': p.texto,
           },
           'respuestaCorrecta': p.respuestaCorrecta,
           'respuestaUsuario': respuesta,
-          'esAcierto': respuesta == p.respuestaCorrecta,
         };
       }).toList();
 
-      await _firestore.collection('resultados_tests').add({
+      final total = resultados['total'] as int;
+      final correctas = resultados['correctas'] as int;
+      final porcentaje = total > 0 ? ((correctas / total) * 100).round() : 0;
+
+      await _firestore.collection('resultados').add({
         'usuarioId': usuarioId,
         'test': {
           'nombre': nombreTest,
-          'temasIds': temasIds,
-          'numPreguntas': preguntas.length,
+          'tema': temasIds,
+          'total': total,
+          'id': 'test_${DateTime.now().millisecondsSinceEpoch}',
+          'fechaInicio': FieldValue.serverTimestamp(),
+          'tiempoEmpleado': 0,
         },
-        'correctas': resultados['correctas'],
+        'correctas': correctas,
         'incorrectas': resultados['incorrectas'],
         'sinResponder': resultados['sinResponder'],
-        'total': resultados['total'],
-        'puntuacion': resultados['puntuacion'],
-        'notaExamen': resultados['notaExamen'],
-        'penalizacion': resultados['penalizacion'],
-        'aciertosNetos': resultados['aciertosNetos'],
+        'porcentaje': porcentaje,
         'fechaCreacion': FieldValue.serverTimestamp(),
         'detalleRespuestas': detalleRespuestas,
       });
@@ -153,16 +168,28 @@ class TestService extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> getHistorial(String usuarioId) async {
     try {
       final snapshot = await _firestore
-          .collection('resultados_tests')
+          .collection('resultados')
           .where('usuarioId', isEqualTo: usuarioId)
           .get();
 
       final lista = snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
+
+        // Normalizar: la pantalla espera 'total' y 'puntuacion' en raíz
+        final testMap = data['test'] as Map<String, dynamic>? ?? {};
+        if (!data.containsKey('total')) {
+          data['total'] = testMap['total'] ?? 0;
+        }
+        // La web guarda 'porcentaje', la pantalla espera 'puntuacion'
+        if (!data.containsKey('puntuacion')) {
+          data['puntuacion'] = data['porcentaje'] ?? 0;
+        }
+
         return data;
       }).toList();
 
+      // Ordenar localmente por fechaCreacion (más reciente primero)
       lista.sort((a, b) {
         final fechaA = a['fechaCreacion'];
         final fechaB = b['fechaCreacion'];
@@ -185,7 +212,7 @@ class TestService extends ChangeNotifier {
 
   Future<bool> eliminarResultado(String testId) async {
     try {
-      await _firestore.collection('resultados_tests').doc(testId).delete();
+      await _firestore.collection('resultados').doc(testId).delete();
       return true;
     } catch (e) {
       debugPrint('Error eliminando resultado: $e');
@@ -254,7 +281,7 @@ class TestService extends ChangeNotifier {
       String usuarioId) async {
     try {
       final snapshot = await _firestore
-          .collection('resultados_tests')
+          .collection('resultados')
           .where('usuarioId', isEqualTo: usuarioId)
           .get();
 
@@ -264,9 +291,12 @@ class TestService extends ChangeNotifier {
         final detalles = data['detalleRespuestas'] as List<dynamic>? ?? [];
         for (final detalle in detalles) {
           final d = detalle as Map<String, dynamic>;
-          final esAcierto = d['esAcierto'] == true;
+          final estado = d['estado'] as String? ?? '';
+          // Compatible con formato web ('estado') y app ('esAcierto')
+          final esFallo = estado == 'incorrecta' ||
+              (d.containsKey('esAcierto') && d['esAcierto'] == false);
           final respuesta = d['respuestaUsuario'];
-          if (!esAcierto && respuesta != null) {
+          if (esFallo && respuesta != null) {
             falladas.add(d);
           }
         }
@@ -317,7 +347,7 @@ class TestService extends ChangeNotifier {
       String userId, String preguntaTexto) async {
     try {
       final snapshot = await _firestore
-          .collection('explicaciones_gemini')
+          .collection('explicacionesGemini')
           .where('preguntaTexto', isEqualTo: preguntaTexto)
           .limit(1)
           .get();
