@@ -63,10 +63,7 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppColors.cardBackground,
-          title: Text('Finalizar Test',
-              style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
+          title: Text('Finalizar Test', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           content: Text(
             'Tienes $sinResponder pregunta${sinResponder > 1 ? 's' : ''} sin responder. Las preguntas en blanco no penalizan.\n\n¿Quieres finalizar?',
             style: GoogleFonts.inter(color: AppColors.textSecondary),
@@ -74,17 +71,14 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child:
-                  Text('Seguir', style: TextStyle(color: AppColors.neutral)),
+              child: Text('Seguir', style: TextStyle(color: AppColors.neutral)),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 _procesarResultados();
               },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
               child: const Text('Finalizar'),
             ),
           ],
@@ -124,9 +118,7 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(widget.nombreTest,
-            style:
-                GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(widget.nombreTest, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -134,9 +126,7 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 16),
-              child: Text('$respondidas/$totalPreguntas',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
+              child: Text('$respondidas/$totalPreguntas', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
           ),
         ],
@@ -146,8 +136,7 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
           LinearProgressIndicator(
             value: respondidas / totalPreguntas,
             backgroundColor: Colors.grey[800],
-            valueColor:
-                const AlwaysStoppedAnimation<Color>(AppColors.success),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
             minHeight: 4,
           ),
 
@@ -156,23 +145,19 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
             height: 50,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               itemCount: totalPreguntas,
               itemBuilder: (context, index) {
                 final pregunta = widget.preguntas[index];
-                final respondida =
-                    _yaRespondidas.contains(pregunta.id);
+                final respondida = _yaRespondidas.contains(pregunta.id);
                 final isCurrent = index == _preguntaActual;
 
                 Color bgColor = AppColors.cardBackground;
                 Color textColor = AppColors.textPrimary;
 
                 if (respondida) {
-                  final esCorrecta = _respuestas[pregunta.id] ==
-                      pregunta.respuestaCorrecta;
-                  bgColor =
-                      esCorrecta ? AppColors.success : AppColors.error;
+                  final esCorrecta = _respuestas[pregunta.id] == pregunta.respuestaCorrecta;
+                  bgColor = esCorrecta ? AppColors.success : AppColors.error;
                   textColor = Colors.white;
                 }
 
@@ -186,18 +171,12 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
                       color: bgColor,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isCurrent
-                            ? AppColors.primary
-                            : Colors.grey[700]!,
+                        color: isCurrent ? AppColors.primary : Colors.grey[700]!,
                         width: isCurrent ? 2.5 : 1,
                       ),
                     ),
                     child: Center(
-                      child: Text('${index + 1}',
-                          style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: textColor)),
+                      child: Text('${index + 1}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
                     ),
                   ),
                 );
@@ -210,20 +189,18 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: totalPreguntas,
-              onPageChanged: (index) =>
-                  setState(() => _preguntaActual = index),
-              itemBuilder: (context, index) =>
-                  _buildPregunta(widget.preguntas[index], index),
+              onPageChanged: (index) => setState(() => _preguntaActual = index),
+              itemBuilder: (context, index) => _buildPregunta(widget.preguntas[index]),
             ),
           ),
 
-          // Botones navegación
+          // Botones navegación (CON ESPACIO PARA BARRA DEL SISTEMA)
           Container(
             padding: EdgeInsets.only(
               left: 16,
               right: 16,
               top: 16,
-              bottom: 16 + MediaQuery.of(context).padding.bottom,
+              bottom: 16 + MediaQuery.of(context).padding.bottom, // Añade espacio para barra sistema
             ),
             color: AppColors.cardBackground,
             child: Row(
@@ -231,52 +208,38 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
                 if (_preguntaActual > 0)
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () =>
-                          _irAPregunta(_preguntaActual - 1),
+                      onPressed: () => _irAPregunta(_preguntaActual - 1),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textPrimary,
                         side: BorderSide(color: AppColors.neutral),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: Text('Anterior',
-                          style: GoogleFonts.inter()),
+                      child: Text('Anterior', style: GoogleFonts.inter()),
                     ),
                   ),
                 if (_preguntaActual > 0) const SizedBox(width: 12),
                 Expanded(
                   child: _preguntaActual < totalPreguntas - 1
                       ? ElevatedButton(
-                          onPressed: () =>
-                              _irAPregunta(_preguntaActual + 1),
+                          onPressed: () => _irAPregunta(_preguntaActual + 1),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          child: Text('Siguiente',
-                              style: GoogleFonts.inter()),
+                          child: Text('Siguiente', style: GoogleFonts.inter()),
                         )
                       : ElevatedButton(
                           onPressed: _finalizarTest,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.success,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          child: Text('Finalizar Test',
-                              style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold)),
+                          child: Text('Finalizar Test', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
                         ),
                 ),
               ],
@@ -287,58 +250,23 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
     );
   }
 
-  Widget _buildPregunta(PreguntaEmbebida pregunta, int index) {
+  Widget _buildPregunta(PreguntaEmbebida pregunta) {
     final respondida = _yaRespondidas.contains(pregunta.id);
     final respuestaUsuario = _respuestas[pregunta.id];
-    final esCorrecta =
-        respondida && respuestaUsuario == pregunta.respuestaCorrecta;
+    final esCorrecta = respondida && respuestaUsuario == pregunta.respuestaCorrecta;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Etiqueta del tema padre
-          if (pregunta.temaNombre != null)
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.folder_outlined, size: 16, color: AppColors.primary),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      pregunta.temaNombre!,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           // Enunciado
           Card(
             color: AppColors.cardBackground,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: Text(pregunta.texto,
-                  style: GoogleFonts.inter(
-                      fontSize: 16,
-                      height: 1.5,
-                      color: AppColors.textPrimary)),
+              child: Text(pregunta.texto, style: GoogleFonts.inter(fontSize: 16, height: 1.5, color: AppColors.textPrimary)),
             ),
           ),
           const SizedBox(height: 16),
@@ -370,18 +298,14 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: InkWell(
-                onTap: respondida
-                    ? null
-                    : () => _seleccionarRespuesta(
-                        pregunta.id, opcion.letra),
+                onTap: respondida ? null : () => _seleccionarRespuesta(pregunta.id, opcion.letra),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: bgColor,
                     borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: borderColor, width: 1.5),
+                    border: Border.all(color: borderColor, width: 1.5),
                   ),
                   child: Row(
                     children: [
@@ -401,22 +325,14 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
                             opcion.letra,
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.bold,
-                              color: respondida &&
-                                      (opcionCorrecta || isSelected)
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
+                              color: respondida && (opcionCorrecta || isSelected) ? Colors.white : AppColors.textPrimary,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
-                          child: Text(opcion.texto,
-                              style: GoogleFonts.inter(
-                                  fontSize: 15,
-                                  color: AppColors.textPrimary))),
-                      if (trailingIcon != null)
-                        Icon(trailingIcon, color: iconColor, size: 24),
+                      Expanded(child: Text(opcion.texto, style: GoogleFonts.inter(fontSize: 15, color: AppColors.textPrimary))),
+                      if (trailingIcon != null) Icon(trailingIcon, color: iconColor, size: 24),
                     ],
                   ),
                 ),
@@ -428,21 +344,16 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
           if (respondida) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: esCorrecta
-                    ? AppColors.success.withOpacity(0.2)
-                    : AppColors.error.withOpacity(0.2),
+                color: esCorrecta ? AppColors.success.withOpacity(0.2) : AppColors.error.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
                   Icon(
                     esCorrecta ? Icons.check_circle : Icons.cancel,
-                    color: esCorrecta
-                        ? AppColors.success
-                        : AppColors.error,
+                    color: esCorrecta ? AppColors.success : AppColors.error,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -452,9 +363,7 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
                           : 'Incorrecto. La respuesta correcta es: ${pregunta.respuestaCorrecta}',
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w600,
-                        color: esCorrecta
-                            ? AppColors.success
-                            : AppColors.error,
+                        color: esCorrecta ? AppColors.success : AppColors.error,
                       ),
                     ),
                   ),
@@ -462,7 +371,7 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
+            
             // Botón Ver Explicación
             SizedBox(
               width: double.infinity,
@@ -478,14 +387,12 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
                   );
                 },
                 icon: const Icon(Icons.menu_book, size: 18),
-                label: Text('Ver Explicación',
-                    style: GoogleFonts.inter(fontSize: 14)),
+                label: Text('Ver Explicación', style: GoogleFonts.inter(fontSize: 14)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),

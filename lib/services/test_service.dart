@@ -2,42 +2,37 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../models/tema.dart';
 import '../models/test_config.dart';
-import '../models/resultado_test.dart';
-import '../models/pregunta.dart';
-import '../models/respuesta_usuario.dart';
 
 class TestService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   TestConfig? _ultimaConfiguracion;
-  
   TestConfig? get ultimaConfiguracion => _ultimaConfiguracion;
 
-  // Guardar configuración del test
+  // ─────────────────────────────────────────────
+  // CONFIGURACIÓN
+  // ─────────────────────────────────────────────
+
   Future<void> guardarConfiguracion(TestConfig config) async {
     _ultimaConfiguracion = config;
-    
-    // Guardar en SharedPreferences para persistencia
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('ultima_config', jsonEncode(config.toMap()));
     } catch (e) {
       debugPrint('Error guardando configuración: $e');
     }
-    
     notifyListeners();
   }
 
-  // Cargar última configuración guardada
   Future<void> cargarUltimaConfiguracion() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final configJson = prefs.getString('ultima_config');
-      
-      if (configJson != null) {
-        final configMap = jsonDecode(configJson) as Map<String, dynamic>;
-        _ultimaConfiguracion = TestConfig.fromMap(configMap);
+      final json = prefs.getString('ultima_config');
+      if (json != null) {
+        final map = jsonDecode(json) as Map<String, dynamic>;
+        _ultimaConfiguracion = TestConfig.fromMap(map);
         notifyListeners();
       }
     } catch (e) {
@@ -45,142 +40,100 @@ class TestService extends ChangeNotifier {
     }
   }
 
-  // Calcular resultados del test con sistema de puntuación
+  // ─────────────────────────────────────────────
+  // CALCULAR RESULTADOS (se llama en RealizarTestScreen)
+  // ─────────────────────────────────────────────
+
   Map<String, dynamic> calcularResultados({
-    required int totalPreguntas,
-    required int correctas,
-    required int incorrectas,
-    required int blancoNulas,
-    int numOpciones = 4,
-    int puntosMaximos = 100,
-    int? notaMaximaExamen = 60,
-  }) {
-    // Validar datos
-    assert(
-      correctas + incorrectas + blancoNulas == totalPreguntas,
-      'La suma de correctas, incorrectas y blanco debe ser igual al total',
-    );
-
-    // Paso 1: Calcular penalización
-    final double penalizacion = incorrectas / (numOpciones - 1);
-
-    // Paso 2: Calcular aciertos netos
-    final double aciertosNetos = correctas - penalizacion;
-
-    // Paso 3: Calcular puntuación sobre 100
-    final double puntuacionDecimal =
-        (aciertosNetos / totalPreguntas) * puntosMaximos;
-    final int puntuacion =
-        puntuacionDecimal.clamp(0, puntosMaximos).round();
-
-    // Paso 4: Calcular nota sobre examen oficial (si aplica)
-    int? notaExamen;
-    if (notaMaximaExamen != null) {
-      final double notaDecimal =
-          (aciertosNetos / totalPreguntas) * notaMaximaExamen;
-      notaExamen = notaDecimal.clamp(0, notaMaximaExamen).round();
-    }
-
-    // Paso 5: Calcular porcentajes
-    final double porcentajeCorrectas = (correctas / totalPreguntas) * 100;
-    final double porcentajeIncorrectas = (incorrectas / totalPreguntas) * 100;
-    final double porcentajeBlancoNulas = (blancoNulas / totalPreguntas) * 100;
-
-    return {
-      'totalPreguntas': totalPreguntas,
-      'correctas': correctas,
-      'incorrectas': incorrectas,
-      'blancoNulas': blancoNulas,
-      'penalizacion': penalizacion,
-      'aciertosNetos': aciertosNetos,
-      'puntuacion': puntuacion,
-      'notaExamen': notaExamen,
-      'porcentajeCorrectas': porcentajeCorrectas,
-      'porcentajeIncorrectas': porcentajeIncorrectas,
-      'porcentajeBlancoNulas': porcentajeBlancoNulas,
-    };
-  }
-
-  // Procesar respuestas y crear resultado del test
-  ResultadoTest procesarTest({
-    required String usuarioId,
-    required String nombreTest,
-    required List<String> temasIds,
-    required List<String> subtemasIds,
-    required List<Pregunta> preguntas,
-    required Map<String, RespuestaUsuario> respuestas,
+    required List<PreguntaEmbebida> preguntas,
+    required Map<String, String?> respuestasUsuario,
   }) {
     int correctas = 0;
     int incorrectas = 0;
-    int blancoNulas = 0;
+    int sinResponder = 0;
 
-    List<PreguntaResultado> preguntasResultado = [];
-
-    for (var pregunta in preguntas) {
-      final respuesta = respuestas[pregunta.id];
-      final respuestaUsuario = respuesta?.respuestaSeleccionada;
-      
-      bool esAcierto = false;
-      
-      if (respuestaUsuario == null) {
-        blancoNulas++;
-      } else if (respuestaUsuario == pregunta.respuestaCorrecta) {
+    for (final p in preguntas) {
+      final respuesta = respuestasUsuario[p.id];
+      if (respuesta == null) {
+        sinResponder++;
+      } else if (respuesta == p.respuestaCorrecta) {
         correctas++;
-        esAcierto = true;
       } else {
         incorrectas++;
       }
-
-      preguntasResultado.add(
-        PreguntaResultado(
-          preguntaId: pregunta.id,
-          enunciado: pregunta.enunciado,
-          opciones: pregunta.opciones,
-          respuestaUsuario: respuestaUsuario,
-          respuestaCorrecta: pregunta.respuestaCorrecta,
-          esAcierto: esAcierto,
-          explicacion: pregunta.explicacion,
-        ),
-      );
     }
 
-    // Calcular puntuación
-    final numOpciones = preguntas.isNotEmpty ? preguntas.first.numOpciones : 4;
-    final calculos = calcularResultados(
-      totalPreguntas: preguntas.length,
-      correctas: correctas,
-      incorrectas: incorrectas,
-      blancoNulas: blancoNulas,
-      numOpciones: numOpciones,
-    );
+    final total = preguntas.length;
+    final penalizacion = incorrectas / 3.0;
+    final aciertosNetos = correctas - penalizacion;
+    final puntuacion = total > 0 ? (aciertosNetos / total * 100).round().clamp(0, 100) : 0;
+    final notaExamen = total > 0 ? (aciertosNetos / total * 60).clamp(0, 60) : 0;
 
-    return ResultadoTest(
-      usuarioId: usuarioId,
-      nombreTest: nombreTest,
-      fecha: DateTime.now(),
-      temas: temasIds,
-      subtemas: subtemasIds,
-      numeroPreguntas: preguntas.length,
-      numOpciones: numOpciones,
-      totalPreguntas: calculos['totalPreguntas'],
-      correctas: calculos['correctas'],
-      incorrectas: calculos['incorrectas'],
-      blancoNulas: calculos['blancoNulas'],
-      penalizacion: calculos['penalizacion'],
-      aciertosNetos: calculos['aciertosNetos'],
-      puntuacion: calculos['puntuacion'],
-      notaExamen: calculos['notaExamen'],
-      porcentajeCorrectas: calculos['porcentajeCorrectas'],
-      porcentajeIncorrectas: calculos['porcentajeIncorrectas'],
-      porcentajeBlancoNulas: calculos['porcentajeBlancoNulas'],
-      preguntas: preguntasResultado,
-    );
+    return {
+      'total': total,
+      'correctas': correctas,
+      'incorrectas': incorrectas,
+      'sinResponder': sinResponder,
+      'penalizacion': penalizacion,
+      'aciertosNetos': aciertosNetos,
+      'puntuacion': puntuacion,
+      'notaExamen': double.parse(notaExamen.toStringAsFixed(2)),
+    };
   }
 
-  // Guardar resultado en Firebase
-  Future<bool> guardarResultado(ResultadoTest resultado) async {
+  // ─────────────────────────────────────────────
+  // GUARDAR RESULTADO EN FIREBASE
+  // ─────────────────────────────────────────────
+
+  Future<bool> guardarResultado({
+    required String usuarioId,
+    required String nombreTest,
+    required List<PreguntaEmbebida> preguntas,
+    required Map<String, String?> respuestasUsuario,
+    required Map<String, dynamic> resultados,
+    required List<String> temasIds,
+  }) async {
     try {
-      await _firestore.collection('resultados_tests').add(resultado.toMap());
+      final detalleRespuestas = preguntas.map((p) {
+        final respuesta = respuestasUsuario[p.id];
+        return {
+          'temaId': p.temaId,
+          'indice': p.indexEnTema,
+          'temaNombre': p.temaNombre ?? '',
+          'pregunta': {
+            'texto': p.texto,
+            'opciones': p.opciones.map((o) => {
+              'letra': o.letra,
+              'texto': o.texto,
+              'esCorrecta': o.esCorrecta,
+            }).toList(),
+            'explicacion': p.explicacion,
+          },
+          'respuestaCorrecta': p.respuestaCorrecta,
+          'respuestaUsuario': respuesta,
+          'esAcierto': respuesta == p.respuestaCorrecta,
+        };
+      }).toList();
+
+      await _firestore.collection('resultados_tests').add({
+        'usuarioId': usuarioId,
+        'test': {
+          'nombre': nombreTest,
+          'temasIds': temasIds,
+          'numPreguntas': preguntas.length,
+        },
+        'correctas': resultados['correctas'],
+        'incorrectas': resultados['incorrectas'],
+        'sinResponder': resultados['sinResponder'],
+        'total': resultados['total'],
+        'puntuacion': resultados['puntuacion'],
+        'notaExamen': resultados['notaExamen'],
+        'penalizacion': resultados['penalizacion'],
+        'aciertosNetos': resultados['aciertosNetos'],
+        'fechaCreacion': FieldValue.serverTimestamp(),
+        'detalleRespuestas': detalleRespuestas,
+      });
+
       return true;
     } catch (e) {
       debugPrint('Error guardando resultado: $e');
@@ -188,38 +141,145 @@ class TestService extends ChangeNotifier {
     }
   }
 
-  // Obtener historial del usuario
-  Future<List<ResultadoTest>> getHistorial(String usuarioId) async {
+  // ─────────────────────────────────────────────
+  // OBTENER HISTORIAL
+  // ─────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getHistorial(String usuarioId) async {
     try {
+      // Sin orderBy para evitar requerir índice compuesto en Firestore
       final snapshot = await _firestore
           .collection('resultados_tests')
           .where('usuarioId', isEqualTo: usuarioId)
-          .orderBy('fecha', descending: true)
           .get();
 
-      return snapshot.docs
-          .map((doc) => ResultadoTest.fromFirestore(doc.data(), doc.id))
-          .toList();
+      final lista = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+
+      // Ordenar localmente por fechaCreacion (más reciente primero)
+      lista.sort((a, b) {
+        final fechaA = a['fechaCreacion'];
+        final fechaB = b['fechaCreacion'];
+        if (fechaA == null && fechaB == null) return 0;
+        if (fechaA == null) return 1;
+        if (fechaB == null) return -1;
+        try {
+          return fechaB.toDate().compareTo(fechaA.toDate());
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      return lista;
     } catch (e) {
       debugPrint('Error obteniendo historial: $e');
       return [];
     }
   }
 
-  // Obtener un resultado específico por ID
-  Future<ResultadoTest?> getResultadoById(String resultadoId) async {
+  // ─────────────────────────────────────────────
+  // ELIMINAR RESULTADO
+  // ─────────────────────────────────────────────
+
+  Future<bool> eliminarResultado(String testId) async {
     try {
-      final doc = await _firestore
+      await _firestore.collection('resultados_tests').doc(testId).delete();
+      return true;
+    } catch (e) {
+      debugPrint('Error eliminando resultado: $e');
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // PREGUNTAS ALEATORIAS
+  // ─────────────────────────────────────────────
+
+  List<PreguntaEmbebida> getRandomPreguntas(
+    List<PreguntaEmbebida> todasPreguntas,
+    int cantidad,
+  ) {
+    final lista = List<PreguntaEmbebida>.from(todasPreguntas);
+    lista.shuffle();
+    return lista.take(cantidad.clamp(0, lista.length)).toList();
+  }
+
+  // ─────────────────────────────────────────────
+  // PREGUNTAS FALLADAS
+  // ─────────────────────────────────────────────
+
+  Future<int> contarPreguntasFalladas(String usuarioId) async {
+    final falladas = await _getPreguntasFalladasRaw(usuarioId);
+    return falladas.length;
+  }
+
+  Future<List<PreguntaEmbebida>> getPreguntasFalladas(
+    String usuarioId,
+    List<Tema> todosTemas,
+  ) async {
+    final raw = await _getPreguntasFalladasRaw(usuarioId);
+    final resultado = <PreguntaEmbebida>[];
+    final vistas = <String>{};
+
+    for (final item in raw) {
+      final temaId = item['temaId'] as String?;
+      final indice = item['indice'] as int?;
+      if (temaId == null || indice == null) continue;
+
+      final key = '${temaId}_$indice';
+      if (vistas.contains(key)) continue;
+      vistas.add(key);
+
+      // Buscar el tema en la lista
+      final tema = todosTemas.where((t) => t.id == temaId).firstOrNull;
+      if (tema == null) continue;
+
+      // Buscar la pregunta en ese tema por índice
+      if (indice >= 0 && indice < tema.preguntas.length) {
+        final p = tema.preguntas[indice];
+
+        // Resolver temaNombre
+        String temaNombre = tema.nombre;
+        if (tema.esSubtema) {
+          final padre = todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
+          if (padre != null) temaNombre = padre.nombre;
+        }
+
+        resultado.add(p.conTemaNombre(temaNombre));
+      }
+    }
+
+    return resultado;
+  }
+
+  /// Devuelve la lista raw de respuestas falladas de todos los tests del usuario
+  Future<List<Map<String, dynamic>>> _getPreguntasFalladasRaw(String usuarioId) async {
+    try {
+      final snapshot = await _firestore
           .collection('resultados_tests')
-          .doc(resultadoId)
+          .where('usuarioId', isEqualTo: usuarioId)
           .get();
 
-      if (!doc.exists) return null;
-
-      return ResultadoTest.fromFirestore(doc.data()!, doc.id);
+      final falladas = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final detalles = data['detalleRespuestas'] as List<dynamic>? ?? [];
+        for (final detalle in detalles) {
+          final d = detalle as Map<String, dynamic>;
+          final esAcierto = d['esAcierto'] == true;
+          final respuesta = d['respuestaUsuario'];
+          if (!esAcierto && respuesta != null) {
+            falladas.add(d);
+          }
+        }
+      }
+      return falladas;
     } catch (e) {
-      debugPrint('Error obteniendo resultado: $e');
-      return null;
+      debugPrint('Error obteniendo preguntas falladas: $e');
+      return [];
     }
   }
 }
