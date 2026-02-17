@@ -63,21 +63,34 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
         .reversed
         .toList(); // más antiguo primero
 
-    _spots = [];
-    _fechasEje = [];
-    for (int i = 0; i < conFecha.length; i++) {
-      final t = conFecha[i];
-      final pts =
-          ((t['puntuacion'] ?? t['porcentaje'] ?? 0) as num).toDouble();
-      _spots.add(FlSpot(i.toDouble(), pts));
+    // Agrupar por semana y calcular media
+    final Map<int, List<double>> porSemana = {};
+    final Map<int, DateTime> fechaPorSemana = {};
+
+    for (final t in conFecha) {
       try {
         final fecha = t['fechaCreacion'].toDate() as DateTime;
-        _fechasEje.add(DateFormat('dd/MM').format(fecha));
-      } catch (_) {
-        _fechasEje.add('');
-      }
+        final semana = fecha.year * 100 +
+            ((fecha.month - 1) * 30 + fecha.day) ~/ 7;
+        final pts =
+            ((t['puntuacion'] ?? t['porcentaje'] ?? 0) as num).toDouble();
+        porSemana.putIfAbsent(semana, () => []).add(pts);
+        fechaPorSemana.putIfAbsent(semana, () => fecha);
+      } catch (_) {}
     }
 
+    final semanasOrdenadas = porSemana.keys.toList()..sort();
+    _spots = [];
+    _fechasEje = [];
+
+    for (int i = 0; i < semanasOrdenadas.length; i++) {
+      final semana = semanasOrdenadas[i];
+      final valores = porSemana[semana]!;
+      final media = valores.reduce((a, b) => a + b) / valores.length;
+      _spots.add(FlSpot(i.toDouble(), media));
+      final fecha = fechaPorSemana[semana]!;
+      _fechasEje.add(DateFormat('dd/MM').format(fecha));
+    }
     // ── ANÁLISIS POR TEMAS ───────────────────────
     final Map<String, _TemaStat> temaMap = {};
 
@@ -102,7 +115,6 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     }
 
     _temasOrdenados = temaMap.values
-        .where((t) => t.total >= 3)
         .toList()
       ..sort((a, b) => a.porcentajeFallo.compareTo(b.porcentajeFallo));
   }
