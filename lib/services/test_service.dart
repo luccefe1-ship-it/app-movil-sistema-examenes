@@ -144,12 +144,15 @@ class TestService extends ChangeNotifier {
           'fechaInicio': FieldValue.serverTimestamp(),
           'tiempoEmpleado': 0,
         },
+        // ← Campo 'total' también a nivel raíz (la web lo lee como resultado.total)
+        'total': total,
         'correctas': correctas,
         'incorrectas': resultados['incorrectas'],
         'sinResponder': resultados['sinResponder'],
         'porcentaje': porcentaje,
         'fechaCreacion': FieldValue.serverTimestamp(),
         'detalleRespuestas': detalleRespuestas,
+        'origen': 'app_movil', // Identificador de origen
       });
 
       // Actualizar preguntasFalladas (igual que la web)
@@ -157,6 +160,12 @@ class TestService extends ChangeNotifier {
         usuarioId: usuarioId,
         preguntas: preguntas,
         respuestasUsuario: respuestasUsuario,
+      );
+
+      // Registrar en progresoSimple para que cuente en el registro diario
+      await _registrarEnProgresoSimple(
+        usuarioId: usuarioId,
+        temasIds: temasIds,
       );
 
       return true;
@@ -402,5 +411,154 @@ class TestService extends ChangeNotifier {
       debugPrint('Error obteniendo explicación Gemini: $e');
     }
     return null;
+  }
+
+  // ─────────────────────────────────────────────
+  // REGISTRO DIARIO (progresoSimple)
+  // Replica la lógica de registrarTestEnProgresoSimple() de tests.js
+  // ─────────────────────────────────────────────
+
+  Future<void> _registrarEnProgresoSimple({
+    required String usuarioId,
+    required List<String> temasIds,
+  }) async {
+    try {
+      final progresoRef =
+          _firestore.collection('progresoSimple').doc(usuarioId);
+      final progresoDoc = await progresoRef.get();
+
+      // Si el usuario no tiene progresoSimple (no usa planning), no registrar
+      if (!progresoDoc.exists) return;
+
+      final progresoData =
+          Map<String, dynamic>.from(progresoDoc.data()!);
+      final temas =
+          Map<String, dynamic>.from(progresoData['temas'] ?? {});
+      final registros =
+          List<dynamic>.from(progresoData['registros'] ?? []);
+
+      final temasUnicos = temasIds.toSet().toList();
+
+      // Obtener info de cada tema del banco
+      final List<Map<String, dynamic>> infoTemas = [];
+      for (final temaId in temasUnicos) {
+        final temaDoc =
+            await _firestore.collection('temas').doc(temaId).get();
+        if (!temaDoc.exists) continue;
+        final d = temaDoc.data()!;
+        infoTemas.add({
+          'idBanco': temaId,
+          'nombreBanco': d['nombre'] ?? '',
+          'padre': d['temaPadreId'],
+        });
+      }
+
+      if (infoTemas.isEmpty) return;
+
+      // ¿Todos los temas son subtemas del mismo padre?
+      final padres = infoTemas
+          .map((t) => t['padre'])
+          .where((p) => p != null)
+          .toList();
+      final todosDelMismoPadre = padres.length == infoTemas.length &&
+          padres.isNotEmpty &&
+          padres.every((p) => p == padres[0]);
+
+      final esMix = infoTemas.length > 1 && !todosDelMismoPadre;
+      final fechaHoy = Timestamp.now();
+
+      if (esMix) {
+        // Test mixto (múltiples temas raíz)
+        registros.add({
+          'fecha': fechaHoy,
+          'temaId': 'mix',
+          'hojasLeidas': 0,
+          'testsRealizados': 1,
+          'temasMix': temasUnicos,
+        });
+      } else {
+        // Test de un solo tema (o subtemas del mismo padre)
+        Map<String, dynamic> temaInfo = infoTemas[0];
+
+        if (todosDelMismoPadre && padres.isNotEmpty) {
+          final padreId = padres[0] as String;
+          final padreDoc =
+              await _firestore.collection('temas').doc(padreId).get();
+          if (padreDoc.exists) {
+            final pd = padreDoc.data()!;
+            temaInfo = {
+              'idBanco': padreId,
+              'nombreBanco': pd['nombre'] ?? '',
+              'padre': null,
+            };
+          }
+        }
+
+        final idBanco = temaInfo['idBanco'] as String;
+        final nombreBanco = temaInfo['nombreBanco'] as String;
+
+        // Buscar coincidencia en planningSimple por nombre
+        String temaIdFinal = idBanco;
+        String nombreFinal = nombreBanco;
+        int hojasTotales = 0;
+
+        final planningDoc = await _firestore
+            .collection('planningSimple')
+            .doc(usuarioId)
+            .get();
+        if (planningDoc.exists) {
+          final pd = planningDoc.data()!;
+          final planningTemas = List<dynamic>.from(pd['temas'] ?? []);
+          final nombreNorm = _normalizarNombre(nombreBanco);
+          for (final pt in planningTemas) {
+            if (_normalizarNombre(pt['nombre'] ?? '') == nombreNorm) {
+              temaIdFinal = pt['id'] ?? idBanco;
+              nombreFinal = pt['nombre'] ?? nombreBanco;
+              hojasTotales = (pt['hojas'] ?? 0) as int;
+              break;
+            }
+          }
+        }
+
+        // Crear entrada de tema si no existe
+        if (!temas.containsKey(temaIdFinal)) {
+          temas[temaIdFinal] = {
+            'nombre': nombreFinal,
+            'hojasTotales': hojasTotales,
+            'hojasLeidas': 0,
+            'testsRealizados': 0,
+          };
+        }
+
+        // Incrementar contador
+        final entry =
+            Map<String, dynamic>.from(temas[temaIdFinal] as Map);
+        entry['testsRealizados'] = ((entry['testsRealizados'] ?? 0) as int) + 1;
+        temas[temaIdFinal] = entry;
+
+        // Añadir registro
+        registros.add({
+          'fecha': fechaHoy,
+          'temaId': temaIdFinal,
+          'hojasLeidas': 0,
+          'testsRealizados': 1,
+        });
+      }
+
+      progresoData['temas'] = temas;
+      progresoData['registros'] = registros;
+      await progresoRef.set(progresoData);
+      debugPrint('✅ Test registrado en progresoSimple');
+    } catch (e) {
+      debugPrint('Error registrando en progresoSimple: $e');
+    }
+  }
+
+  String _normalizarNombre(String nombre) {
+    return nombre
+        .toLowerCase()
+        .trim()
+        .replaceAll(RegExp(r'tema\s*'), 'tema ')
+        .replaceAll(RegExp(r'\s+'), ' ');
   }
 }
