@@ -18,11 +18,13 @@ class TestService extends ChangeNotifier {
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('ultima_config', jsonEncode({
-        'nombre': nombre,
-        'temasIds': temasIds,
-        'numPreguntas': numPreguntas,
-      }));
+      await prefs.setString(
+          'ultima_config',
+          jsonEncode({
+            'nombre': nombre,
+            'temasIds': temasIds,
+            'numPreguntas': numPreguntas,
+          }));
     } catch (e) {
       debugPrint('Error guardando configuración: $e');
     }
@@ -116,11 +118,13 @@ class TestService extends ChangeNotifier {
             'temaId': p.temaId,
             'temaNombre': p.temaNombre ?? '',
             'temaEpigrafe': '',
-            'opciones': p.opciones.map((o) => {
-              'letra': o.letra,
-              'texto': o.texto,
-              'esCorrecta': o.esCorrecta,
-            }).toList(),
+            'opciones': p.opciones
+                .map((o) => {
+                      'letra': o.letra,
+                      'texto': o.texto,
+                      'esCorrecta': o.esCorrecta,
+                    })
+                .toList(),
             'respuestaCorrecta': p.respuestaCorrecta,
             'explicacion': p.explicacion,
           },
@@ -185,11 +189,11 @@ class TestService extends ChangeNotifier {
     final colRef = _firestore.collection('preguntasFalladas');
 
     // Obtener falladas actuales del usuario
-    final snapshot = await colRef
-        .where('usuarioId', isEqualTo: usuarioId)
-        .get();
+    final snapshot =
+        await colRef.where('usuarioId', isEqualTo: usuarioId).get();
 
-    final falladasActuales = <String, String>{}; // key: temaId_indice, value: docId
+    final falladasActuales =
+        <String, String>{}; // key: temaId_indice, value: docId
     for (final doc in snapshot.docs) {
       final d = doc.data();
       final key = '${d['temaId']}_${d['indice']}';
@@ -218,11 +222,13 @@ class TestService extends ChangeNotifier {
             'temaNombre': p.temaNombre ?? '',
             'pregunta': {
               'texto': p.texto,
-              'opciones': p.opciones.map((o) => {
-                'letra': o.letra,
-                'texto': o.texto,
-                'esCorrecta': o.esCorrecta,
-              }).toList(),
+              'opciones': p.opciones
+                  .map((o) => {
+                        'letra': o.letra,
+                        'texto': o.texto,
+                        'esCorrecta': o.esCorrecta,
+                      })
+                  .toList(),
               'respuestaCorrecta': p.respuestaCorrecta,
             },
             'fechaFallo': FieldValue.serverTimestamp(),
@@ -346,9 +352,8 @@ class TestService extends ChangeNotifier {
           final p = tema.preguntas[indice];
           String temaNombre = tema.nombre;
           if (tema.esSubtema) {
-            final padre = todosTemas
-                .where((t) => t.id == tema.temaPadreId)
-                .firstOrNull;
+            final padre =
+                todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
             if (padre != null) temaNombre = padre.nombre;
           }
           resultado.add(p.conTemaNombre(temaNombre));
@@ -405,7 +410,7 @@ class TestService extends ChangeNotifier {
           .limit(1)
           .get();
       if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.first.data()['explicacion'] as String?;
+        return snapshot.docs.first.data()['texto'] as String?;
       }
     } catch (e) {
       debugPrint('Error obteniendo explicación Gemini: $e');
@@ -430,20 +435,16 @@ class TestService extends ChangeNotifier {
       // Si el usuario no tiene progresoSimple (no usa planning), no registrar
       if (!progresoDoc.exists) return;
 
-      final progresoData =
-          Map<String, dynamic>.from(progresoDoc.data()!);
-      final temas =
-          Map<String, dynamic>.from(progresoData['temas'] ?? {});
-      final registros =
-          List<dynamic>.from(progresoData['registros'] ?? []);
+      final progresoData = Map<String, dynamic>.from(progresoDoc.data()!);
+      final temas = Map<String, dynamic>.from(progresoData['temas'] ?? {});
+      final registros = List<dynamic>.from(progresoData['registros'] ?? []);
 
       final temasUnicos = temasIds.toSet().toList();
 
       // Obtener info de cada tema del banco
       final List<Map<String, dynamic>> infoTemas = [];
       for (final temaId in temasUnicos) {
-        final temaDoc =
-            await _firestore.collection('temas').doc(temaId).get();
+        final temaDoc = await _firestore.collection('temas').doc(temaId).get();
         if (!temaDoc.exists) continue;
         final d = temaDoc.data()!;
         infoTemas.add({
@@ -456,10 +457,8 @@ class TestService extends ChangeNotifier {
       if (infoTemas.isEmpty) return;
 
       // ¿Todos los temas son subtemas del mismo padre?
-      final padres = infoTemas
-          .map((t) => t['padre'])
-          .where((p) => p != null)
-          .toList();
+      final padres =
+          infoTemas.map((t) => t['padre']).where((p) => p != null).toList();
       final todosDelMismoPadre = padres.length == infoTemas.length &&
           padres.isNotEmpty &&
           padres.every((p) => p == padres[0]);
@@ -502,10 +501,8 @@ class TestService extends ChangeNotifier {
         String nombreFinal = nombreBanco;
         int hojasTotales = 0;
 
-        final planningDoc = await _firestore
-            .collection('planningSimple')
-            .doc(usuarioId)
-            .get();
+        final planningDoc =
+            await _firestore.collection('planningSimple').doc(usuarioId).get();
         if (planningDoc.exists) {
           final pd = planningDoc.data()!;
           final planningTemas = List<dynamic>.from(pd['temas'] ?? []);
@@ -531,8 +528,7 @@ class TestService extends ChangeNotifier {
         }
 
         // Incrementar contador
-        final entry =
-            Map<String, dynamic>.from(temas[temaIdFinal] as Map);
+        final entry = Map<String, dynamic>.from(temas[temaIdFinal] as Map);
         entry['testsRealizados'] = ((entry['testsRealizados'] ?? 0) as int) + 1;
         temas[temaIdFinal] = entry;
 
@@ -560,5 +556,17 @@ class TestService extends ChangeNotifier {
         .trim()
         .replaceAll(RegExp(r'tema\s*'), 'tema ')
         .replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  Future<String?> obtenerClaudeApiKey() async {
+    try {
+      final doc = await _firestore.collection('config').doc('keys').get();
+      if (doc.exists) {
+        return doc.data()?['claudeApiKey'] as String?;
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo API key: $e');
+    }
+    return null;
   }
 }
