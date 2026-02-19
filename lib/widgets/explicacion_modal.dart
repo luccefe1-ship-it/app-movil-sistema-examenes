@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
 import '../models/tema.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../services/test_service.dart';
 
 class ExplicacionModal extends StatefulWidget {
@@ -20,7 +22,8 @@ class ExplicacionModal extends StatefulWidget {
   State<ExplicacionModal> createState() => _ExplicacionModalState();
 }
 
-class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerProviderStateMixin {
+class _ExplicacionModalState extends State<ExplicacionModal>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _temaDigitalTexto;
   String? _subrayadosHtml;
@@ -32,6 +35,7 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
   bool _tieneSubrayados = false;
 
   final GlobalKey _firstHighlightKey = GlobalKey();
+  bool _generandoIA = false;
 
   @override
   void initState() {
@@ -48,8 +52,10 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
 
   Future<void> _cargarExplicaciones() async {
     try {
-      final textoDigital = await widget.testService.obtenerTemaDigital(widget.pregunta.temaId);
-      final subrayados = await widget.testService.obtenerSubrayados(widget.userId, widget.pregunta.texto);
+      final textoDigital =
+          await widget.testService.obtenerTemaDigital(widget.pregunta.temaId);
+      final subrayados = await widget.testService
+          .obtenerSubrayados(widget.userId, widget.pregunta.texto);
 
       if (mounted) {
         setState(() {
@@ -74,7 +80,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
     }
 
     try {
-      final texto = await widget.testService.obtenerExplicacionGemini(widget.userId, widget.pregunta.texto);
+      final texto = await widget.testService
+          .obtenerExplicacionGemini(widget.userId, widget.pregunta.texto);
       if (mounted) {
         setState(() {
           _geminiTexto = texto;
@@ -113,14 +120,18 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppColors.primary,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
               children: [
                 const Icon(Icons.menu_book, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 Text('Explicación',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
@@ -135,7 +146,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
               controller: _tabController,
               indicatorColor: Colors.white,
               indicatorWeight: 3,
-              labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+              labelStyle:
+                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
               unselectedLabelStyle: GoogleFonts.inter(fontSize: 13),
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white60,
@@ -150,7 +162,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                          decoration: const BoxDecoration(
+                              color: AppColors.success, shape: BoxShape.circle),
                         ),
                       ],
                     ],
@@ -160,13 +173,14 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Explicación Gemini'),
+                      const Text('Explicación IA'),
                       if (_tieneGemini) ...[
                         const SizedBox(width: 6),
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                          decoration: const BoxDecoration(
+                              color: AppColors.success, shape: BoxShape.circle),
                         ),
                       ],
                     ],
@@ -198,7 +212,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
           children: [
             const CircularProgressIndicator(color: AppColors.primary),
             const SizedBox(height: 12),
-            Text('Cargando tema digital...', style: GoogleFonts.inter(color: AppColors.textSecondary)),
+            Text('Cargando tema digital...',
+                style: GoogleFonts.inter(color: AppColors.textSecondary)),
           ],
         ),
       );
@@ -211,10 +226,13 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.description_outlined, size: 48, color: AppColors.neutral),
+              Icon(Icons.description_outlined,
+                  size: 48, color: AppColors.neutral),
               const SizedBox(height: 12),
               Text('No hay documento digital disponible para este tema.',
-                  style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary), textAlign: TextAlign.center),
+                  style: GoogleFonts.inter(
+                      fontSize: 14, color: AppColors.textSecondary),
+                  textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -241,7 +259,10 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
                   const Text('✏️', style: TextStyle(fontSize: 14)),
                   const SizedBox(width: 6),
                   Text('Mostrando tus subrayados',
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF92400E))),
+                      style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF92400E))),
                 ],
               ),
             ),
@@ -255,14 +276,16 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
       padding: const EdgeInsets.all(16),
       child: SelectableText(
         _temaDigitalTexto!,
-        style: GoogleFonts.inter(fontSize: 14, height: 1.7, color: AppColors.textPrimary),
+        style: GoogleFonts.inter(
+            fontSize: 14, height: 1.7, color: AppColors.textPrimary),
       ),
     );
   }
 
   List<Widget> _buildHighlightedWidgets(String html) {
     final widgets = <Widget>[];
-    final regex = RegExp(r'<span[^>]*class="subrayado"[^>]*>(.*?)</span>', dotAll: true);
+    final regex =
+        RegExp(r'<span[^>]*class="subrayado"[^>]*>(.*?)</span>', dotAll: true);
 
     bool firstHighlightFound = false;
     int lastEnd = 0;
@@ -273,7 +296,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
         if (before.trim().isNotEmpty) {
           widgets.add(Text(
             before,
-            style: GoogleFonts.inter(fontSize: 14, height: 1.7, color: AppColors.textPrimary),
+            style: GoogleFonts.inter(
+                fontSize: 14, height: 1.7, color: AppColors.textPrimary),
           ));
         }
       }
@@ -308,7 +332,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
       if (remaining.trim().isNotEmpty) {
         widgets.add(Text(
           remaining,
-          style: GoogleFonts.inter(fontSize: 14, height: 1.7, color: AppColors.textPrimary),
+          style: GoogleFonts.inter(
+              fontSize: 14, height: 1.7, color: AppColors.textPrimary),
         ));
       }
     }
@@ -316,7 +341,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
     if (widgets.isEmpty) {
       widgets.add(Text(
         _stripHtml(html),
-        style: GoogleFonts.inter(fontSize: 14, height: 1.7, color: AppColors.textPrimary),
+        style: GoogleFonts.inter(
+            fontSize: 14, height: 1.7, color: AppColors.textPrimary),
       ));
     }
 
@@ -334,6 +360,65 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
         .replaceAll('&quot;', '"');
   }
 
+  Future<void> _generarExplicacionIA() async {
+    setState(() => _generandoIA = true);
+    try {
+      final apiKey = await widget.testService.obtenerClaudeApiKey();
+      if (apiKey == null)
+        throw Exception('No se encontró la configuración de IA');
+
+      final opciones = widget.pregunta.opciones
+          .map((o) => '${o.letra}) ${o.texto}')
+          .join('\n');
+      final correcta = widget.pregunta.opciones.firstWhere((o) => o.esCorrecta,
+          orElse: () => widget.pregunta.opciones.first);
+
+      final prompt =
+          'Eres un experto en oposiciones españolas. Explica de forma clara y concisa '
+          'por qué la respuesta correcta a esta pregunta es la que es.\n\n'
+          'Pregunta: ${widget.pregunta.texto}\n'
+          'Opciones:\n$opciones\n'
+          'Respuesta correcta: ${correcta.letra}) ${correcta.texto}\n\n'
+          'Proporciona una explicación pedagógica de 3-5 líneas.';
+
+      final response = await http.post(
+        Uri.parse('https://api.anthropic.com/v1/messages'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: jsonEncode({
+          'model': 'claude-haiku-4-5-20251001',
+          'max_tokens': 500,
+          'messages': [
+            {'role': 'user', 'content': prompt}
+          ],
+        }),
+      );
+
+      if (response.statusCode != 200)
+        throw Exception('Error API: ${response.statusCode}');
+      final data = jsonDecode(response.body);
+      final texto = data['content'][0]['text'] as String;
+
+      if (mounted) {
+        setState(() {
+          _geminiTexto = texto;
+          _tieneGemini = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _generandoIA = false);
+    }
+  }
+
   Widget _buildGeminiTab() {
     if (_loadingGemini) {
       return Center(
@@ -342,7 +427,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
           children: [
             const CircularProgressIndicator(color: AppColors.primary),
             const SizedBox(height: 12),
-            Text('Cargando explicación Gemini...', style: GoogleFonts.inter(color: AppColors.textSecondary)),
+            Text('Cargando explicación IA...',
+                style: GoogleFonts.inter(color: AppColors.textSecondary)),
           ],
         ),
       );
@@ -355,10 +441,31 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.smart_toy_outlined, size: 48, color: AppColors.neutral),
+              Icon(Icons.smart_toy_outlined,
+                  size: 48, color: AppColors.neutral),
               const SizedBox(height: 12),
-              Text('No hay explicación Gemini para esta pregunta.',
-                  style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary), textAlign: TextAlign.center),
+              Text('No hay explicación IA para esta pregunta.',
+                  style: GoogleFonts.inter(
+                      fontSize: 14, color: AppColors.textSecondary),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 20),
+              _generandoIA
+                  ? const CircularProgressIndicator(color: AppColors.primary)
+                  : ElevatedButton.icon(
+                      onPressed: _generarExplicacionIA,
+                      icon: const Text('✨', style: TextStyle(fontSize: 16)),
+                      label: Text('Generar con IA',
+                          style:
+                              GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
             ],
           ),
         ),
@@ -373,7 +480,8 @@ class _ExplicacionModalState extends State<ExplicacionModal> with SingleTickerPr
       padding: const EdgeInsets.all(16),
       child: SelectableText(
         textoLimpio,
-        style: GoogleFonts.inter(fontSize: 14, height: 1.7, color: AppColors.textPrimary),
+        style: GoogleFonts.inter(
+            fontSize: 14, height: 1.7, color: AppColors.textPrimary),
       ),
     );
   }
