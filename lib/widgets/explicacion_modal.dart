@@ -10,12 +10,14 @@ class ExplicacionModal extends StatefulWidget {
   final PreguntaEmbebida pregunta;
   final String userId;
   final TestService testService;
+  final String? respuestaUsuario;
 
   const ExplicacionModal({
     super.key,
     required this.pregunta,
     required this.userId,
     required this.testService,
+    this.respuestaUsuario,
   });
 
   @override
@@ -373,13 +375,21 @@ class _ExplicacionModalState extends State<ExplicacionModal>
       final correcta = widget.pregunta.opciones.firstWhere((o) => o.esCorrecta,
           orElse: () => widget.pregunta.opciones.first);
 
+      final respUsuario = widget.respuestaUsuario != null
+          ? widget.pregunta.opciones.firstWhere(
+              (o) => o.letra == widget.respuestaUsuario,
+              orElse: () => widget.pregunta.opciones.first)
+          : null;
+
       final prompt =
-          'Eres un experto en oposiciones españolas. Explica de forma clara y concisa '
-          'por qué la respuesta correcta a esta pregunta es la que es.\n\n'
+          'Eres un experto en oposiciones españolas. Analiza esta pregunta y explica:\n'
+          '1. Por qué la respuesta del alumno es INCORRECTA (si lo es).\n'
+          '2. Por qué la respuesta CORRECTA es la que es, con base legal si aplica.\n\n'
           'Pregunta: ${widget.pregunta.texto}\n'
           'Opciones:\n$opciones\n'
+          'Respuesta del alumno: ${respUsuario != null ? "${respUsuario.letra}) ${respUsuario.texto}" : "No disponible"}\n'
           'Respuesta correcta: ${correcta.letra}) ${correcta.texto}\n\n'
-          'Proporciona una explicación pedagógica de 3-5 líneas.';
+          'Sé directo y pedagógico. Máximo 6 líneas.';
 
       final response = await http.post(
         Uri.parse('https://api.anthropic.com/v1/messages'),
@@ -492,14 +502,16 @@ void showExplicacionModal(
   BuildContext context,
   PreguntaEmbebida pregunta,
   String userId,
-  TestService testService,
-) {
+  TestService testService, {
+  String? respuestaUsuario,
+}) {
   showDialog(
     context: context,
     builder: (_) => ExplicacionModal(
       pregunta: pregunta,
       userId: userId,
       testService: testService,
+      respuestaUsuario: respuestaUsuario,
     ),
   );
 }
