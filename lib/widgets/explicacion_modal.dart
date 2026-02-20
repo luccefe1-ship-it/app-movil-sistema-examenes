@@ -493,13 +493,49 @@ await widget.testService.guardarExplicacionGemini(
         .replaceAll(RegExp(r'<br\s*/?>'), '\n')
         .replaceAll(RegExp(r'<[^>]*>'), '');
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: SelectableText(
-        textoLimpio,
-        style: GoogleFonts.inter(
-            fontSize: 14, height: 1.7, color: AppColors.textPrimary),
-      ),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: SelectableText(
+              textoLimpio,
+              style: GoogleFonts.inter(
+                  fontSize: 14, height: 1.7, color: AppColors.textPrimary),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                await widget.testService.guardarExplicacionGemini(
+                  widget.pregunta.texto,
+                  _geminiTexto!,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Explicación guardada'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.save, size: 18),
+              label: Text('Guardar', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
