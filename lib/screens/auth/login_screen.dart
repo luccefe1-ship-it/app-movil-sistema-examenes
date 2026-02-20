@@ -104,9 +104,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     style: const TextStyle(color: Colors.black87),
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: const TextStyle(color: Colors.black54),
-                      floatingLabelStyle: const TextStyle(color: Colors.black87),
+                      hintText: 'Email',
+                      hintStyle: const TextStyle(color: Colors.black45),
                       prefixIcon: const Icon(Icons.email_outlined, color: Colors.black54),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       focusedBorder: OutlineInputBorder(
@@ -136,9 +135,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _obscurePassword,
                     style: const TextStyle(color: Colors.black87),
                     decoration: InputDecoration(
-                      labelText: 'Contraseña',
-                      labelStyle: const TextStyle(color: Colors.black54),
-                      floatingLabelStyle: const TextStyle(color: Colors.black87),
+                      hintText: 'Contraseña',
+                      hintStyle: const TextStyle(color: Colors.black45),
                       prefixIcon: const Icon(Icons.lock_outline, color: Colors.black54),
                       suffixIcon: IconButton(
                         icon: Icon(
