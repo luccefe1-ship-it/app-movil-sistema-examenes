@@ -39,6 +39,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
   final GlobalKey _firstHighlightKey = GlobalKey();
   bool _generandoIA = false;
   bool _guardado = false;
+  bool _yaGuardadoEnFirestore = false;
   
 
   @override
@@ -91,11 +92,15 @@ class _ExplicacionModalState extends State<ExplicacionModal>
           _geminiTexto = texto;
           _tieneGemini = texto != null && texto.isNotEmpty;
           _guardado = texto != null && texto.isNotEmpty;
+          _yaGuardadoEnFirestore = texto != null && texto.isNotEmpty;
           _loadingGemini = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _loadingGemini = false);
+      if (mounted) setState(() {
+        _loadingGemini = false;
+        _geminiTexto = 'Error al cargar: $e';
+      });
     }
   }
 
@@ -509,7 +514,8 @@ await widget.testService.guardarExplicacionGemini(
             ),
           ),
         ),
-                Padding(
+                        if (!_yaGuardadoEnFirestore)
+        Padding(
           padding: const EdgeInsets.all(12),
           child: SizedBox(
             width: double.infinity,
