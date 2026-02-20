@@ -102,14 +102,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: Colors.black87),
                     decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
+                      labelStyle: const TextStyle(color: Colors.black54),
+                      floatingLabelStyle: const TextStyle(color: Colors.black87),
+                      prefixIcon: const Icon(Icons.email_outlined, color: Colors.black54),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.white,
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -127,24 +134,32 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    style: const TextStyle(color: Colors.black87),
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      labelStyle: const TextStyle(color: Colors.black54),
+                      floatingLabelStyle: const TextStyle(color: Colors.black87),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.black54),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
+                          color: Colors.black54,
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
                         },
                       ),
-                      border: OutlineInputBorder(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.white,
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
