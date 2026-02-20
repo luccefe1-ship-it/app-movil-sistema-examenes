@@ -414,6 +414,11 @@ final prompt =
       final data = jsonDecode(response.body);
       final texto = data['content'][0]['text'] as String;
 
+await widget.testService.guardarExplicacionGemini(
+        widget.pregunta.texto,
+        texto,
+      );
+
       if (mounted) {
         setState(() {
           _geminiTexto = texto;
