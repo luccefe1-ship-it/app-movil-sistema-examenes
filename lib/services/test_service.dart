@@ -558,6 +558,28 @@ class TestService extends ChangeNotifier {
         .replaceAll(RegExp(r'\s+'), ' ');
   }
 
+  Future<void> guardarExplicacionGemini(String preguntaTexto, String explicacion) async {
+    try {
+      final snapshot = await _firestore
+          .collection('explicacionesGemini')
+          .where('preguntaTexto', isEqualTo: preguntaTexto)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update({'texto': explicacion});
+      } else {
+        await _firestore.collection('explicacionesGemini').add({
+          'preguntaTexto': preguntaTexto,
+          'texto': explicacion,
+          'creadoEn': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error guardando explicación: $e');
+    }
+  }
+
   Future<String?> obtenerClaudeApiKey() async {
     try {
       final doc = await _firestore.collection('config').doc('keys').get();
