@@ -462,6 +462,7 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
                     pregunta,
                     authService.userId ?? '',
                     testService,
+                    respuestaUsuario: respuestaUsuario,
                   );
                 },
                 icon: const Icon(Icons.menu_book, size: 18),
