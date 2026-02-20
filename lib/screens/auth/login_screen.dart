@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
 import '../../config/app_colors.dart';
 import '../home/home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +19,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _recordarDatos = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarDatosGuardados();
+  }
+
+  Future<void> _cargarDatosGuardados() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('saved_email') ?? '';
+    final password = prefs.getString('saved_password') ?? '';
+    final recordar = prefs.getBool('recordar_datos') ?? false;
+    if (recordar) {
+      setState(() {
+        _emailController.text = email;
+        _passwordController.text = password;
+        _recordarDatos = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -32,7 +54,17 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     final authService = context.read<AuthService>();
-    final success = await authService.login(
+    final prefs = await SharedPreferences.getInstance();
+        if (_recordarDatos) {
+          await prefs.setString('saved_email', _emailController.text.trim());
+          await prefs.setString('saved_password', _passwordController.text);
+          await prefs.setBool('recordar_datos', true);
+        } else {
+          await prefs.remove('saved_email');
+          await prefs.remove('saved_password');
+          await prefs.setBool('recordar_datos', false);
+        }
+        final success = await authService.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
@@ -168,6 +200,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       }
                       return null;
                     },
+                  ),
+                                    Row(
+                    children: [
+                      Checkbox(
+                        value: _recordarDatos,
+                        onChanged: (v) => setState(() => _recordarDatos = v ?? false),
+                        activeColor: AppColors.primary,
+                      ),
+                      Text('Recordar datos', style: GoogleFonts.inter(fontSize: 14, color: Colors.black87)),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   
