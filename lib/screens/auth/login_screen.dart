@@ -208,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onChanged: (v) => setState(() => _recordarDatos = v ?? false),
                         activeColor: AppColors.primary,
                       ),
-                      Text('Recordar datos', style: GoogleFonts.inter(fontSize: 14, color: Colors.black87)),
+                      Text('Recordar datos', style: GoogleFonts.inter(fontSize: 14, color: Colors.white)),
                     ],
                   ),
                   const SizedBox(height: 24),
