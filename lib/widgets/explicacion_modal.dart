@@ -37,7 +37,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
   bool _tieneSubrayados = false;
 
   final GlobalKey _firstHighlightKey = GlobalKey();
-  bool _generandoIA = false;
+    bool _generandoIA = false;
+  bool _guardado = false;
 
   @override
   void initState() {
@@ -505,29 +506,36 @@ await widget.testService.guardarExplicacionGemini(
             ),
           ),
         ),
-        Padding(
+                Padding(
           padding: const EdgeInsets.all(12),
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () async {
+              onPressed: _guardado ? null : () async {
                 await widget.testService.guardarExplicacionGemini(
                   widget.pregunta.texto,
                   _geminiTexto!,
                 );
                 if (mounted) {
+                  setState(() {
+                    _guardado = true;
+                    _tieneGemini = true;
+                  });
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Explicación guardada'),
+                      content: Text('✅ Explicación guardada'),
                       backgroundColor: Colors.green,
                     ),
                   );
                 }
               },
-              icon: const Icon(Icons.save, size: 18),
-              label: Text('Guardar', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              icon: Icon(_guardado ? Icons.check : Icons.save, size: 18),
+              label: Text(
+                _guardado ? 'Guardada' : 'Guardar',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: _guardado ? Colors.grey : AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
