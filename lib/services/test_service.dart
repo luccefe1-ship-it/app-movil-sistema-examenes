@@ -404,13 +404,10 @@ class TestService extends ChangeNotifier {
   Future<String?> obtenerExplicacionGemini(
       String userId, String preguntaTexto) async {
     try {
-      final snapshot = await _firestore
-          .collection('explicacionesGemini')
-          .where('preguntaTexto', isEqualTo: preguntaTexto)
-          .limit(1)
-          .get();
-      if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.first.data()['texto'] as String?;
+      final docId = _generarDocId(userId, preguntaTexto);
+      final doc = await _firestore.collection('explicacionesGemini').doc(docId).get();
+      if (doc.exists) {
+        return doc.data()?['texto'] as String?;
       }
     } catch (e) {
       debugPrint('Error obteniendo explicación Gemini: $e');
@@ -558,23 +555,26 @@ class TestService extends ChangeNotifier {
         .replaceAll(RegExp(r'\s+'), ' ');
   }
 
-  Future<void> guardarExplicacionGemini(String preguntaTexto, String explicacion) async {
-    try {
-      final snapshot = await _firestore
-          .collection('explicacionesGemini')
-          .where('preguntaTexto', isEqualTo: preguntaTexto)
-          .limit(1)
-          .get();
+  String _generarDocId(String userId, String preguntaTexto) {
+    int hash = 0;
+    for (int i = 0; i < preguntaTexto.length; i++) {
+      int char = preguntaTexto.codeUnitAt(i);
+      hash = (((hash << 5) - hash) + char) & 0xFFFFFFFF;
+      if (hash >= 0x80000000) hash -= 0x100000000;
+    }
+    final preguntaIdHash = 'q_' + hash.abs().toRadixString(36);
+    return '${userId}_$preguntaIdHash';
+  }
 
-      if (snapshot.docs.isNotEmpty) {
-        await snapshot.docs.first.reference.update({'texto': explicacion});
-      } else {
-        await _firestore.collection('explicacionesGemini').add({
-          'preguntaTexto': preguntaTexto,
-          'texto': explicacion,
-          'creadoEn': FieldValue.serverTimestamp(),
-        });
-      }
+  Future<void> guardarExplicacionGemini(String preguntaTexto, String explicacion, {required String userId}) async {
+    try {
+      final docId = _generarDocId(userId, preguntaTexto);
+      await _firestore.collection('explicacionesGemini').doc(docId).set({
+        'usuarioId': userId,
+        'preguntaTexto': preguntaTexto,
+        'texto': explicacion,
+        'fecha': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       debugPrint('Error guardando explicación: $e');
     }
