@@ -381,15 +381,17 @@ class _ExplicacionModalState extends State<ExplicacionModal>
               orElse: () => widget.pregunta.opciones.first)
           : null;
 
-      final prompt =
-          'Eres un experto en oposiciones españolas. Analiza esta pregunta y explica:\n'
-          '1. Por qué la respuesta del alumno es INCORRECTA (si lo es).\n'
-          '2. Por qué la respuesta CORRECTA es la que es, con base legal si aplica.\n\n'
+final prompt =
+          'Eres un experto en Derecho español y oposiciones a la justicia. '
+          'Analiza esta pregunta citando la legislación española vigente aplicable.\n\n'
           'Pregunta: ${widget.pregunta.texto}\n'
           'Opciones:\n$opciones\n'
           'Respuesta del alumno: ${respUsuario != null ? "${respUsuario.letra}) ${respUsuario.texto}" : "No disponible"}\n'
           'Respuesta correcta: ${correcta.letra}) ${correcta.texto}\n\n'
-          'Sé directo y pedagógico. Máximo 6 líneas.';
+          'Responde en dos partes:\n'
+          '1. POR QUÉ ES INCORRECTA: explica el error del alumno citando el artículo o norma que lo contradice.\n'
+          '2. POR QUÉ ES CORRECTA: justifica la respuesta correcta con el fundamento legal exacto (artículo, ley, código).\n'
+          'Sé preciso y conciso. Máximo 8 líneas.';
 
       final response = await http.post(
         Uri.parse('https://api.anthropic.com/v1/messages'),
