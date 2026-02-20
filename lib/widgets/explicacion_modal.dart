@@ -37,8 +37,9 @@ class _ExplicacionModalState extends State<ExplicacionModal>
   bool _tieneSubrayados = false;
 
   final GlobalKey _firstHighlightKey = GlobalKey();
-    bool _generandoIA = false;
+  bool _generandoIA = false;
   bool _guardado = false;
+  
 
   @override
   void initState() {
