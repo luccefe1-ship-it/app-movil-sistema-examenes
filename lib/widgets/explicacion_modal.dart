@@ -86,10 +86,11 @@ class _ExplicacionModalState extends State<ExplicacionModal>
     try {
       final texto = await widget.testService
           .obtenerExplicacionGemini(widget.userId, widget.pregunta.texto);
-      if (mounted) {
+            if (mounted) {
         setState(() {
           _geminiTexto = texto;
           _tieneGemini = texto != null && texto.isNotEmpty;
+          _guardado = texto != null && texto.isNotEmpty;
           _loadingGemini = false;
         });
       }
