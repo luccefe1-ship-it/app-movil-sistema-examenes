@@ -426,6 +426,7 @@ await widget.testService.guardarExplicacionGemini(
         setState(() {
           _geminiTexto = texto;
           _tieneGemini = true;
+          _guardado = true;
         });
       }
     } catch (e) {
