@@ -425,6 +425,7 @@ final prompt =
 await widget.testService.guardarExplicacionGemini(
         widget.pregunta.texto,
         texto,
+        userId: widget.userId,
       );
 
       if (mounted) {
@@ -524,6 +525,7 @@ await widget.testService.guardarExplicacionGemini(
                 await widget.testService.guardarExplicacionGemini(
                   widget.pregunta.texto,
                   _geminiTexto!,
+                  userId: widget.userId,
                 );
                 if (mounted) {
                   setState(() {
