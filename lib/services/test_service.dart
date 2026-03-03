@@ -301,13 +301,52 @@ class TestService extends ChangeNotifier {
   // PREGUNTAS ALEATORIAS
   // ─────────────────────────────────────────────
 
-  List<PreguntaEmbebida> getRandomPreguntas(
+List<PreguntaEmbebida> getRandomPreguntas(
     List<PreguntaEmbebida> todasPreguntas,
     int cantidad,
   ) {
-    final lista = List<PreguntaEmbebida>.from(todasPreguntas);
-    lista.shuffle();
-    return lista.take(cantidad.clamp(0, lista.length)).toList();
+    if (todasPreguntas.isEmpty) return [];
+    final cantidadFinal = cantidad.clamp(0, todasPreguntas.length);
+
+    // Si se piden todas, devolver mezcladas
+    if (cantidadFinal >= todasPreguntas.length) {
+      final lista = List<PreguntaEmbebida>.from(todasPreguntas)..shuffle();
+      return lista;
+    }
+
+    // 1. Agrupar por tema padre (temaNombre ya contiene el nombre del padre)
+    final Map<String, List<PreguntaEmbebida>> porTema = {};
+    for (final p in todasPreguntas) {
+      final clave = p.temaNombre ?? p.temaId;
+      porTema.putIfAbsent(clave, () => []).add(p);
+    }
+
+    final temas = porTema.keys.toList();
+    final cuotaBase = cantidadFinal ~/ temas.length;
+    final extras = cantidadFinal % temas.length;
+
+    // 2. Distribución proporcional entre temas
+    final List<PreguntaEmbebida> seleccionadas = [];
+
+    for (int i = 0; i < temas.length; i++) {
+      final cuota = cuotaBase + (i < extras ? 1 : 0);
+      final lista = List<PreguntaEmbebida>.from(porTema[temas[i]]!)..shuffle();
+      seleccionadas.addAll(lista.take(cuota));
+    }
+
+    // 3. Si algún tema no tenía suficientes, completar del pool restante
+    if (seleccionadas.length < cantidadFinal) {
+      final usadas = seleccionadas.toSet();
+      final restantes = todasPreguntas.where((p) => !usadas.contains(p)).toList()
+        ..shuffle();
+      seleccionadas.addAll(
+        restantes.take(cantidadFinal - seleccionadas.length),
+      );
+    }
+
+    // 4. Mezcla final
+    seleccionadas.shuffle();
+    return seleccionadas;
   }
 
   // ─────────────────────────────────────────────
