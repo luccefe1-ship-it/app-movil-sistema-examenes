@@ -56,17 +56,24 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
   void _toggleTema(String temaId, TemasService temasService) {
     setState(() {
-      if (_temasSeleccionados.contains(temaId)) {
+      if (_temasSeleccionados.containsAll(
+          temasService.getSubtemas(temaId).map((s) => s.id)) ||
+          _temasSeleccionados.contains(temaId)) {
         _temasSeleccionados.remove(temaId);
         final subtemas = temasService.getSubtemas(temaId);
         for (var s in subtemas) {
           _temasSeleccionados.remove(s.id);
         }
       } else {
-        _temasSeleccionados.add(temaId);
         final subtemas = temasService.getSubtemas(temaId);
-        for (var s in subtemas) {
-          _temasSeleccionados.add(s.id);
+        if (subtemas.isNotEmpty) {
+          // Solo añadir subtemas, NO el padre (las preguntas están en los subtemas)
+          for (var s in subtemas) {
+            _temasSeleccionados.add(s.id);
+          }
+        } else {
+          // Tema sin subtemas: añadir directamente
+          _temasSeleccionados.add(temaId);
         }
       }
     });
@@ -357,9 +364,11 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   }
 
   Widget _buildTemaCard(Tema tema, TemasService temasService) {
-    final isSelected = _temasSeleccionados.contains(tema.id);
-    final isExpanded = _temasExpandidos.contains(tema.id);
     final subtemas = temasService.getSubtemas(tema.id);
+    final isSelected = subtemas.isNotEmpty
+        ? subtemas.every((s) => _temasSeleccionados.contains(s.id))
+        : _temasSeleccionados.contains(tema.id);
+    final isExpanded = _temasExpandidos.contains(tema.id);
     final totalPreguntas = temasService.contarPreguntasVerificadas(tema.id);
 
     return Card(
