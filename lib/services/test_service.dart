@@ -345,19 +345,59 @@ class TestService extends ChangeNotifier {
         final indice = d['indice'] as int?;
         if (temaId == null || indice == null) continue;
 
-        final tema = todosTemas.where((t) => t.id == temaId).firstOrNull;
-        if (tema == null) continue;
-
-        if (indice >= 0 && indice < tema.preguntas.length) {
-          final p = tema.preguntas[indice];
-          String temaNombre = tema.nombre;
-          if (tema.esSubtema) {
-            final padre =
-                todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
-            if (padre != null) temaNombre = padre.nombre;
+        // Resolver nombre del tema padre
+        String temaNombre = d['temaNombre'] as String? ?? '';
+        if (temaNombre.isEmpty) {
+          final tema = todosTemas.where((t) => t.id == temaId).firstOrNull;
+          if (tema != null) {
+            temaNombre = tema.nombre;
+            if (tema.esSubtema) {
+              final padre =
+                  todosTemas.where((t) => t.id == tema.temaPadreId).firstOrNull;
+              if (padre != null) temaNombre = padre.nombre;
+            }
           }
-          resultado.add(p.conTemaNombre(temaNombre));
         }
+
+        // PRIMERO: intentar obtener la pregunta del tema actual (índice válido)
+        final tema = todosTemas.where((t) => t.id == temaId).firstOrNull;
+        if (tema != null && indice >= 0 && indice < tema.preguntas.length) {
+          resultado.add(tema.preguntas[indice].conTemaNombre(temaNombre));
+          continue;
+        }
+
+        // FALLBACK: reconstruir desde los datos embebidos en el doc de fallada
+        final preguntaData = d['pregunta'] as Map<String, dynamic>?;
+        if (preguntaData == null) continue;
+
+        final texto = preguntaData['texto'] as String? ?? '';
+        if (texto.isEmpty) continue;
+
+        List<OpcionPregunta> opciones = [];
+        if (preguntaData['opciones'] is List) {
+          opciones = (preguntaData['opciones'] as List).map((o) {
+            final opMap = o as Map<String, dynamic>;
+            return OpcionPregunta(
+              letra: opMap['letra'] ?? '',
+              texto: opMap['texto'] ?? '',
+              esCorrecta: opMap['esCorrecta'] == true,
+            );
+          }).toList();
+        }
+
+        if (opciones.isEmpty) continue;
+
+        resultado.add(PreguntaEmbebida(
+          temaId: temaId,
+          indexEnTema: indice,
+          texto: texto,
+          opciones: opciones,
+          respuestaCorrecta:
+              preguntaData['respuestaCorrecta'] as String? ?? '',
+          verificada: true,
+          explicacion: preguntaData['explicacion'] as String?,
+          temaNombre: temaNombre,
+        ));
       }
 
       return resultado;
@@ -374,20 +414,33 @@ class TestService extends ChangeNotifier {
   Future<String?> obtenerTemaDigital(String temaId) async {
     try {
       final doc = await _firestore.collection('temas').doc(temaId).get();
-      if (doc.exists) {
-        final documentoDigital = doc.data()?['documentoDigital'];
-        if (documentoDigital != null) {
-          return documentoDigital['textoExtraido'] as String?;
-        }
-        // Si no tiene documento, buscar en el tema padre
-        final temaPadreId = doc.data()?['temaPadreId'] as String?;
-        if (temaPadreId != null) {
-          final docPadre =
-              await _firestore.collection('temas').doc(temaPadreId).get();
-          if (docPadre.exists) {
-            final docPadreDigital = docPadre.data()?['documentoDigital'];
-            if (docPadreDigital != null) {
-              return docPadreDigital['textoExtraido'] as String?;
+      if (!doc.exists) return null;
+
+      final data = doc.data()!;
+
+      // 1. Si el propio tema/subtema tiene documento digital, devolver ese
+      final documentoDigital = data['documentoDigital'];
+      if (documentoDigital != null) {
+        final texto = documentoDigital['textoExtraido'] as String?;
+        if (texto != null && texto.isNotEmpty) return texto;
+      }
+
+      // 2. Si es subtema, buscar en el padre pero intentar extraer SOLO la sección relevante
+      final temaPadreId = data['temaPadreId'] as String?;
+      if (temaPadreId != null) {
+        final docPadre =
+            await _firestore.collection('temas').doc(temaPadreId).get();
+        if (docPadre.exists) {
+          final docPadreDigital = docPadre.data()?['documentoDigital'];
+          if (docPadreDigital != null) {
+            final textoCompleto =
+                docPadreDigital['textoExtraido'] as String?;
+            if (textoCompleto != null && textoCompleto.isNotEmpty) {
+              // Intentar extraer solo la sección del subtema
+              final nombreSubtema = data['nombre'] as String? ?? '';
+              final seccion =
+                  _extraerSeccionPorNombre(textoCompleto, nombreSubtema);
+              return seccion ?? textoCompleto;
             }
           }
         }
@@ -396,6 +449,65 @@ class TestService extends ChangeNotifier {
       debugPrint('Error obteniendo tema digital: $e');
     }
     return null;
+  }
+
+  /// Intenta extraer la sección del documento que corresponde a un subtema.
+  /// Busca el nombre del subtema como encabezado y extrae hasta el siguiente encabezado similar.
+  String? _extraerSeccionPorNombre(String textoCompleto, String nombreSubtema) {
+    if (nombreSubtema.isEmpty) return null;
+
+    final nombreLower = nombreSubtema.toLowerCase().trim();
+    final lineas = textoCompleto.split('\n');
+
+    int inicio = -1;
+    int fin = lineas.length;
+
+    // Extraer número del subtema para buscar patrones como "Tema 1", "1.", "1.-", etc.
+    final numMatch = RegExp(r'(\d+)').firstMatch(nombreSubtema);
+    final numero = numMatch?.group(1);
+
+    for (int i = 0; i < lineas.length; i++) {
+      final lineaLower = lineas[i].toLowerCase().trim();
+
+      if (inicio == -1) {
+        // Buscar inicio: línea que contenga el nombre del subtema o su número
+        bool esInicio = lineaLower.contains(nombreLower);
+        if (!esInicio && numero != null) {
+          // Buscar patrones como "Tema 3", "3.", "3.-", "Epígrafe 3"
+          esInicio = RegExp(
+            r'(^|\s)(tema|epígrafe|epigrafe|apartado|capítulo|capitulo)?\s*' +
+                RegExp.escape(numero) +
+                r'[\.\-\s:)]',
+            caseSensitive: false,
+          ).hasMatch(lineaLower);
+        }
+        if (esInicio) inicio = i;
+      } else {
+        // Buscar fin: siguiente encabezado de nivel similar
+        if (numero != null) {
+          final nextNum = int.tryParse(numero);
+          if (nextNum != null) {
+            final sigNumero = (nextNum + 1).toString();
+            final esSiguiente = RegExp(
+              r'(^|\s)(tema|epígrafe|epigrafe|apartado|capítulo|capitulo)?\s*' +
+                  RegExp.escape(sigNumero) +
+                  r'[\.\-\s:)]',
+              caseSensitive: false,
+            ).hasMatch(lineaLower);
+            if (esSiguiente) {
+              fin = i;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (inicio == -1) return null;
+
+    final seccion = lineas.sublist(inicio, fin).join('\n').trim();
+    // Solo devolver si la sección tiene contenido sustancial (>100 chars)
+    return seccion.length > 100 ? seccion : null;
   }
 
   Future<String?> obtenerSubrayados(String userId, String preguntaTexto) async {
