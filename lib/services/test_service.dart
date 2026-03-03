@@ -374,9 +374,12 @@ class TestService extends ChangeNotifier {
   Future<String?> obtenerTemaDigital(String temaId) async {
     try {
       final doc =
-          await _firestore.collection('temas_digital').doc(temaId).get();
+          await _firestore.collection('temas').doc(temaId).get();
       if (doc.exists) {
-        return doc.data()?['contenido'] as String?;
+        final documentoDigital = doc.data()?['documentoDigital'];
+        if (documentoDigital != null) {
+          return documentoDigital['textoExtraido'] as String?;
+        }
       }
     } catch (e) {
       debugPrint('Error obteniendo tema digital: $e');
