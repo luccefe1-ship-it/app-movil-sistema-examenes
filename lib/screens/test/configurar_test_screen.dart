@@ -19,7 +19,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   final _nombreController = TextEditingController();
   final Set<String> _temasSeleccionados = {};
   final Set<String> _temasExpandidos = {};
-  int _numeroPreguntas = 10;
+  int _numeroPreguntas = 25;
   bool _isLoading = true;
   bool _isStarting = false;
   int _preguntasFalladas = 0;
@@ -43,7 +43,12 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
     if (authService.userId != null) {
       await temasService.cargarTemas(authService.userId!);
-      _preguntasFalladas = await testService.contarPreguntasFalladas(authService.userId!);
+      // Contar las falladas reales (filtradas contra temas cargados)
+      final falladasReales = await testService.getPreguntasFalladas(
+        authService.userId!,
+        temasService.todosTemas,
+      );
+      _preguntasFalladas = falladasReales.length;
     }
 
     setState(() => _isLoading = false);
@@ -289,7 +294,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 10,
-                    children: [10, 20, 50, 100].map((n) {
+                    children: [10, 25, 50, 100].map((n) {
                       final isSelected = _numeroPreguntas == n;
                       return ChoiceChip(
                         label: Text(
