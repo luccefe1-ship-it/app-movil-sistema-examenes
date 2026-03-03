@@ -577,7 +577,7 @@ class TestService extends ChangeNotifier {
       hash = (((hash << 5) - hash) + char) & 0xFFFFFFFF;
       if (hash >= 0x80000000) hash -= 0x100000000;
     }
-    final preguntaIdHash = 'q_' + hash.abs().toRadixString(36);
+    final preguntaIdHash = 'q_${hash.abs().toRadixString(36)}';
     return '${userId}_$preguntaIdHash';
   }
 
@@ -596,7 +596,63 @@ class TestService extends ChangeNotifier {
       debugPrint('Error guardando explicación: $e');
     }
   }
+Future<void> guardarSubrayado({
+    required String userId,
+    required String preguntaTexto,
+    required String html,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('subrayados')
+          .where('usuarioId', isEqualTo: userId)
+          .where('preguntaTexto', isEqualTo: preguntaTexto)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update({'html': html});
+      } else {
+        await _firestore.collection('subrayados').add({
+          'usuarioId': userId,
+          'preguntaTexto': preguntaTexto,
+          'html': html,
+          'fecha': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error guardando subrayado: $e');
+    }
+  }
 
+  Future<void> eliminarSubrayado({
+    required String userId,
+    required String preguntaTexto,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('subrayados')
+          .where('usuarioId', isEqualTo: userId)
+          .where('preguntaTexto', isEqualTo: preguntaTexto)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.delete();
+      }
+    } catch (e) {
+      debugPrint('Error eliminando subrayado: $e');
+    }
+  }
+
+  Future<void> eliminarExplicacionGemini({
+    required String userId,
+    required String preguntaTexto,
+  }) async {
+    try {
+      final docId = _generarDocId(userId, preguntaTexto);
+      await _firestore.collection('explicacionesGemini').doc(docId).delete();
+    } catch (e) {
+      debugPrint('Error eliminando explicación: $e');
+    }
+  }
   Future<String?> obtenerClaudeApiKey() async {
     try {
       final doc = await _firestore.collection('config').doc('keys').get();
