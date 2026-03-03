@@ -373,8 +373,7 @@ class TestService extends ChangeNotifier {
 
   Future<String?> obtenerTemaDigital(String temaId) async {
     try {
-      final doc =
-          await _firestore.collection('temas').doc(temaId).get();
+      final doc = await _firestore.collection('temas').doc(temaId).get();
       if (doc.exists) {
         final documentoDigital = doc.data()?['documentoDigital'];
         if (documentoDigital != null) {
@@ -408,7 +407,8 @@ class TestService extends ChangeNotifier {
       String userId, String preguntaTexto) async {
     try {
       final docId = _generarDocId(userId, preguntaTexto);
-      final doc = await _firestore.collection('explicacionesGemini').doc(docId).get();
+      final doc =
+          await _firestore.collection('explicacionesGemini').doc(docId).get();
       if (doc.exists) {
         return doc.data()?['texto'] as String?;
       }
@@ -569,7 +569,9 @@ class TestService extends ChangeNotifier {
     return '${userId}_$preguntaIdHash';
   }
 
-  Future<void> guardarExplicacionGemini(String preguntaTexto, String explicacion, {required String userId}) async {
+  Future<void> guardarExplicacionGemini(
+      String preguntaTexto, String explicacion,
+      {required String userId}) async {
     try {
       final docId = _generarDocId(userId, preguntaTexto);
       await _firestore.collection('explicacionesGemini').doc(docId).set({
@@ -593,5 +595,3 @@ class TestService extends ChangeNotifier {
       debugPrint('Error obteniendo API key: $e');
     }
     return null;
-  }
-}
