@@ -379,6 +379,18 @@ class TestService extends ChangeNotifier {
         if (documentoDigital != null) {
           return documentoDigital['textoExtraido'] as String?;
         }
+        // Si no tiene documento, buscar en el tema padre
+        final temaPadreId = doc.data()?['temaPadreId'] as String?;
+        if (temaPadreId != null) {
+          final docPadre =
+              await _firestore.collection('temas').doc(temaPadreId).get();
+          if (docPadre.exists) {
+            final docPadreDigital = docPadre.data()?['documentoDigital'];
+            if (docPadreDigital != null) {
+              return docPadreDigital['textoExtraido'] as String?;
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error obteniendo tema digital: $e');
@@ -595,3 +607,5 @@ class TestService extends ChangeNotifier {
       debugPrint('Error obteniendo API key: $e');
     }
     return null;
+  }
+}
