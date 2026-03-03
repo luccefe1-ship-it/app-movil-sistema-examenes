@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/pregunta.dart';
-import '../models/tema.dart';
-import '../models/subtema.dart';
 
 class PreguntasService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -45,33 +43,9 @@ class PreguntasService extends ChangeNotifier {
   /// [temas] - Lista de temas (contienen nombre)
   ///
   /// Devuelve una nueva lista con temaNombre asignado.
-  List<Pregunta> asignarTemaNombre({
-    required List<Pregunta> preguntas,
-    required List<Subtema> subtemas,
-    required List<Tema> temas,
-  }) {
-    // Crear mapa subtemaId -> temaId
-    final Map<String, String> subtemaToTema = {};
-    for (final subtema in subtemas) {
-      subtemaToTema[subtema.id] = subtema.temaId;
-    }
-
-    // Crear mapa temaId -> nombre
-    final Map<String, String> temaIdToNombre = {};
-    for (final tema in temas) {
-      temaIdToNombre[tema.id] = tema.nombre;
-    }
-
-    // Asignar temaNombre a cada pregunta
-    return preguntas.map((pregunta) {
-      final temaId = subtemaToTema[pregunta.subtemaId];
-      final temaNombre = temaId != null ? temaIdToNombre[temaId] : null;
-      return pregunta.conTemaNombre(temaNombre ?? 'Sin tema');
-    }).toList();
-  }
-
   // Obtener N preguntas aleatorias de una lista
-  List<Pregunta> getRandomPreguntas(List<Pregunta> todasPreguntas, int cantidad) {
+  List<Pregunta> getRandomPreguntas(
+      List<Pregunta> todasPreguntas, int cantidad) {
     if (todasPreguntas.length <= cantidad) {
       return todasPreguntas;
     }
@@ -98,7 +72,8 @@ class PreguntasService extends ChangeNotifier {
 
       // Filtrar solo las falladas
       final falladas = preguntas
-          .where((p) => p['esAcierto'] == false && p['respuestaUsuario'] != null)
+          .where(
+              (p) => p['esAcierto'] == false && p['respuestaUsuario'] != null)
           .map((p) => p['preguntaId'] as String)
           .toList();
 
@@ -120,7 +95,7 @@ class PreguntasService extends ChangeNotifier {
 
       for (int i = 0; i < preguntaIds.length; i += 10) {
         final batch = preguntaIds.skip(i).take(10).toList();
-        
+
         final snapshot = await _firestore
             .collection('preguntas')
             .where(FieldPath.documentId, whereIn: batch)
