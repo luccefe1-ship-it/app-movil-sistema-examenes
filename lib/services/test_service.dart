@@ -448,45 +448,42 @@ List<PreguntaEmbebida> getRandomPreguntas(
 
   // ─────────────────────────────────────────────
   // FILTROS DE POOL: SOLO NUEVAS / SOLO FALLADAS
-  // Replica el comportamiento de la web (tests.js): se comparan las
-  // preguntas por su texto (mismo criterio que usa la plataforma web).
+  // Referencia: el HISTORIAL de tests de la app (colección `resultados`,
+  // lo mismo que muestra la pantalla de Historial). El emparejamiento se
+  // hace por la clave estable `temaId_indice` y, como respaldo, por el
+  // texto de la pregunta. Así una pregunta cuenta como vista/fallada aunque
+  // el texto tenga alguna diferencia mínima.
   // ─────────────────────────────────────────────
 
-  /// Conjunto de textos de preguntas que el usuario YA ha visto alguna vez.
-  /// Se leen del registro de tests (colección `resultados`), por lo que
-  /// cuenta cualquier test realizado por el usuario.
-  Future<Set<String>> obtenerTextosVistos(String usuarioId) async {
-    final vistos = <String>{};
-    try {
-      final snapshot = await _firestore
-          .collection('resultados')
-          .where('usuarioId', isEqualTo: usuarioId)
-          .get();
-
-      for (final doc in snapshot.docs) {
-        final detalles =
-            doc.data()['detalleRespuestas'] as List<dynamic>? ?? [];
-        for (final d in detalles) {
-          if (d is! Map<String, dynamic>) continue;
-          final pregunta = d['pregunta'] as Map<String, dynamic>?;
-          final texto = pregunta?['texto'] as String?;
-          if (texto != null && texto.trim().isNotEmpty) {
-            vistos.add(texto.trim());
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error obteniendo textos vistos: $e');
-    }
-    return vistos;
+  /// Claves que identifican una pregunta del pool.
+  Set<String> _clavesPregunta(PreguntaEmbebida p) {
+    final claves = <String>{'id:${p.temaId}_${p.indexEnTema}'};
+    final t = p.texto.trim();
+    if (t.isNotEmpty) claves.add('txt:$t');
+    return claves;
   }
 
-  /// Conjunto de textos de preguntas falladas de forma ACUMULATIVA, leídas del
-  /// registro de tests (colección `resultados`), igual que la web
-  /// (`obtenerHashesFallados` de tests.js): una pregunta fallada alguna vez
-  /// sigue contando aunque después se acierte. Las preguntas en blanco
-  /// (`estado == 'sinResponder'`) NO cuentan como falladas.
-  Future<Set<String>> obtenerTextosFallados(String usuarioId) async {
+  /// Claves que identifican una entrada de `detalleRespuestas` del historial.
+  Set<String> _clavesDetalle(Map<String, dynamic> d) {
+    final claves = <String>{};
+    final temaId = d['temaId'];
+    final indice = d['indice'];
+    if (temaId != null && indice != null) {
+      claves.add('id:${temaId}_$indice');
+    }
+    final pregunta = d['pregunta'] as Map<String, dynamic>?;
+    final texto = (pregunta?['texto'] ?? d['enunciado'])?.toString().trim();
+    if (texto != null && texto.isNotEmpty) claves.add('txt:$texto');
+    return claves;
+  }
+
+  /// Lee el historial de tests de la app y devuelve dos conjuntos de claves:
+  /// preguntas VISTAS (aparecen en algún test) y FALLADAS (acumulativo: una
+  /// pregunta fallada alguna vez sigue contando aunque luego se acierte; las
+  /// dejadas en blanco NO cuentan como falladas).
+  Future<Map<String, Set<String>>> _leerHistorialClaves(
+      String usuarioId) async {
+    final vistos = <String>{};
     final fallados = <String>{};
     try {
       final snapshot = await _firestore
@@ -499,43 +496,49 @@ List<PreguntaEmbebida> getRandomPreguntas(
             doc.data()['detalleRespuestas'] as List<dynamic>? ?? [];
         for (final d in detalles) {
           if (d is! Map<String, dynamic>) continue;
-          final estado = (d['estado'] ?? d['resultado']) as String?;
-          if (estado != 'incorrecta' && estado != 'fallada') continue;
-          final pregunta = d['pregunta'] as Map<String, dynamic>?;
-          final texto = pregunta?['texto'] as String?;
-          if (texto != null && texto.trim().isNotEmpty) {
-            fallados.add(texto.trim());
+          final claves = _clavesDetalle(d);
+          if (claves.isEmpty) continue;
+          vistos.addAll(claves);
+          final estado = (d['estado'] ?? d['resultado'])?.toString();
+          if (estado == 'incorrecta' || estado == 'fallada') {
+            fallados.addAll(claves);
           }
         }
       }
     } catch (e) {
-      debugPrint('Error obteniendo textos fallados: $e');
+      debugPrint('Error leyendo historial de tests: $e');
     }
-    return fallados;
+    debugPrint(
+        '📚 Historial → claves vistas: ${vistos.length}, falladas: ${fallados.length}');
+    return {'vistos': vistos, 'fallados': fallados};
   }
 
-  /// Devuelve solo las preguntas del pool que el usuario NUNCA ha visto.
+  /// Devuelve solo las preguntas del pool que el usuario NUNCA ha visto en el
+  /// historial de tests de la app.
   Future<List<PreguntaEmbebida>> filtrarSoloNuevas(
     List<PreguntaEmbebida> pool,
     String usuarioId,
   ) async {
-    final vistos = await obtenerTextosVistos(usuarioId);
-    final nuevas =
-        pool.where((p) => !vistos.contains(p.texto.trim())).toList();
-    debugPrint(
-        '🆕 Nuevas: ${nuevas.length} de ${pool.length} (vistas: ${vistos.length})');
+    final historial = await _leerHistorialClaves(usuarioId);
+    final vistos = historial['vistos']!;
+    final nuevas = pool
+        .where((p) => _clavesPregunta(p).intersection(vistos).isEmpty)
+        .toList();
+    debugPrint('🆕 Nuevas: ${nuevas.length} de ${pool.length}');
     return nuevas;
   }
 
-  /// Devuelve solo las preguntas del pool que están en el registro de falladas
-  /// propio de la app.
+  /// Devuelve solo las preguntas del pool que el usuario ha FALLADO alguna vez
+  /// en el historial de tests de la app.
   Future<List<PreguntaEmbebida>> filtrarSoloFalladas(
     List<PreguntaEmbebida> pool,
     String usuarioId,
   ) async {
-    final fallados = await obtenerTextosFallados(usuarioId);
-    final falladas =
-        pool.where((p) => fallados.contains(p.texto.trim())).toList();
+    final historial = await _leerHistorialClaves(usuarioId);
+    final fallados = historial['fallados']!;
+    final falladas = pool
+        .where((p) => _clavesPregunta(p).intersection(fallados).isNotEmpty)
+        .toList();
     debugPrint('🔴 Falladas: ${falladas.length} de ${pool.length}');
     return falladas;
   }
