@@ -29,6 +29,14 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   bool _calculandoDisponibles = false;
   int _peticionDisponibles = 0; // descarta cálculos obsoletos
 
+  // Conteo por tema/subtema con el filtro activo (clave = temaId → nº de
+  // preguntas de ESE tema que coinciden con el filtro). Las claves del
+  // historial se cachean para no releer Firestore por cada tarjeta.
+  Map<String, int> _conteoFiltradoPorTema = {};
+  Set<String>? _clavesVistos;
+  Set<String>? _clavesFallados;
+  bool _cargandoConteos = false;
+
   @override
   void initState() {
     super.initState();
@@ -442,6 +450,68 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
     });
   }
 
+  /// Recalcula, para cada tema y subtema, cuántas de sus preguntas coinciden
+  /// con el filtro activo (solo nuevas / solo falladas), tomando como
+  /// referencia el historial de tests de la app. El resultado se guarda en
+  /// `_conteoFiltradoPorTema` (clave = id del tema/subtema → nº propio) y lo
+  /// usan las tarjetas para mostrar el número correcto.
+  Future<void> _recalcularConteosPorTema() async {
+    // Sin filtro: no hay conteo especial, las tarjetas vuelven al total.
+    if (!_soloNuevas && !_soloFalladas) {
+      if (mounted) setState(() => _conteoFiltradoPorTema = {});
+      return;
+    }
+
+    final authService = context.read<AuthService>();
+    final temasService = context.read<TemasService>();
+    final testService = context.read<TestService>();
+
+    if (authService.userId == null) return;
+
+    setState(() => _cargandoConteos = true);
+
+    // Cargar las claves del historial una sola vez y cachearlas.
+    if (_clavesVistos == null || _clavesFallados == null) {
+      final historial =
+          await testService.cargarClavesHistorial(authService.userId!);
+      _clavesVistos = historial['vistos'] ?? <String>{};
+      _clavesFallados = historial['fallados'] ?? <String>{};
+    }
+
+    if (!mounted) return;
+
+    final claves = _soloNuevas ? _clavesVistos! : _clavesFallados!;
+    final esFalladas = _soloFalladas;
+
+    final Map<String, int> conteos = {};
+    for (final tema in temasService.todosTemas) {
+      int n = 0;
+      for (final p in tema.preguntas) {
+        if (!p.verificada) continue;
+        final coincide = testService.coincideEnHistorial(p, claves);
+        // Falladas: cuenta si coincide. Nuevas: cuenta si NO coincide.
+        if (esFalladas ? coincide : !coincide) n++;
+      }
+      conteos[tema.id] = n;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _conteoFiltradoPorTema = conteos;
+      _cargandoConteos = false;
+    });
+  }
+
+  /// Número que muestra la tarjeta de un tema con el filtro activo: la suma de
+  /// sus preguntas propias que coinciden más las de todos sus subtemas.
+  int _conteoTemaConSubtemas(Tema tema, TemasService temasService) {
+    int total = _conteoFiltradoPorTema[tema.id] ?? 0;
+    for (final s in temasService.getSubtemas(tema.id)) {
+      total += _conteoFiltradoPorTema[s.id] ?? 0;
+    }
+    return total;
+  }
+
   /// Texto de preguntas disponibles. Reacciona al filtro seleccionado.
   Widget _buildDisponiblesText(TemasService temasService) {
     // Sin filtro: total de verificadas de los temas elegidos.
@@ -546,6 +616,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                 if (_soloNuevas) _soloFalladas = false;
               });
               _recalcularDisponibles();
+              _recalcularConteosPorTema();
             },
           ),
           const Divider(height: 1),
@@ -574,11 +645,55 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                 if (_soloFalladas) _soloNuevas = false;
               });
               _recalcularDisponibles();
+              _recalcularConteosPorTema();
             },
           ),
         ],
       ),
     );
+  }
+
+  /// Subtítulo de la tarjeta de tema: número total, o número filtrado
+  /// (nuevas/falladas) cuando hay un filtro activo.
+  Widget _buildContadorTema(Tema tema, TemasService temasService, int total) {
+    final filtroActivo = _soloNuevas || _soloFalladas;
+    if (!filtroActivo) {
+      return Text('$total preguntas',
+          style: GoogleFonts.inter(
+              fontSize: 12, color: AppColors.textSecondary));
+    }
+    if (_cargandoConteos && _conteoFiltradoPorTema.isEmpty) {
+      return Text('Calculando…',
+          style: GoogleFonts.inter(
+              fontSize: 12, color: AppColors.textSecondary));
+    }
+    final n = _conteoTemaConSubtemas(tema, temasService);
+    final color = _soloNuevas ? AppColors.success : AppColors.error;
+    final etiqueta = _soloNuevas ? 'nuevas' : 'falladas';
+    return Text('$n $etiqueta',
+        style: GoogleFonts.inter(
+            fontSize: 12, color: color, fontWeight: FontWeight.w600));
+  }
+
+  /// Subtítulo de la fila de subtema: número total, o número filtrado.
+  Widget _buildContadorSubtema(Tema subtema) {
+    final filtroActivo = _soloNuevas || _soloFalladas;
+    if (!filtroActivo) {
+      return Text('${subtema.numPreguntasVerificadas} preguntas',
+          style: GoogleFonts.inter(
+              fontSize: 11, color: AppColors.textSecondary));
+    }
+    if (_cargandoConteos && _conteoFiltradoPorTema.isEmpty) {
+      return Text('Calculando…',
+          style: GoogleFonts.inter(
+              fontSize: 11, color: AppColors.textSecondary));
+    }
+    final n = _conteoFiltradoPorTema[subtema.id] ?? 0;
+    final color = _soloNuevas ? AppColors.success : AppColors.error;
+    final etiqueta = _soloNuevas ? 'nuevas' : 'falladas';
+    return Text('$n $etiqueta',
+        style: GoogleFonts.inter(
+            fontSize: 11, color: color, fontWeight: FontWeight.w600));
   }
 
   Widget _buildTemaCard(Tema tema, TemasService temasService) {
@@ -612,7 +727,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(tema.nombre, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                      Text('$totalPreguntas preguntas', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
+                      _buildContadorTema(tema, temasService, totalPreguntas),
                     ],
                   ),
                 ),
@@ -637,7 +752,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                   final subSelected = _temasSeleccionados.contains(subtema.id);
                   return CheckboxListTile(
                     title: Text(subtema.nombre, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary)),
-                    subtitle: Text('${subtema.numPreguntasVerificadas} preguntas', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+                    subtitle: _buildContadorSubtema(subtema),
                     value: subSelected,
                     activeColor: AppColors.primaryLight,
                     dense: true,
