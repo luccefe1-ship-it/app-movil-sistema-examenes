@@ -442,26 +442,20 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: _preguntasFalladas > 0
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
             ),
             subtitle: Text(
-              _preguntasFalladas > 0
-                  ? 'Solo las que has fallado y aún no has acertado'
-                  : 'No tienes preguntas falladas registradas',
+              'Solo las que has fallado alguna vez en tests anteriores',
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: AppColors.textSecondary,
               ),
             ),
-            onChanged: _preguntasFalladas == 0
-                ? null
-                : (v) => setState(() {
-                      _soloFalladas = v ?? false;
-                      if (_soloFalladas) _soloNuevas = false;
-                    }),
+            onChanged: (v) => setState(() {
+              _soloFalladas = v ?? false;
+              if (_soloFalladas) _soloNuevas = false;
+            }),
           ),
         ],
       ),
