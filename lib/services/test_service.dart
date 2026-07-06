@@ -481,22 +481,31 @@ List<PreguntaEmbebida> getRandomPreguntas(
     return vistos;
   }
 
-  /// Conjunto de textos de preguntas falladas según el registro propio de la
-  /// app (colección `preguntasFalladas`). Una pregunta desaparece de este
-  /// registro en cuanto el usuario la acierta.
+  /// Conjunto de textos de preguntas falladas de forma ACUMULATIVA, leídas del
+  /// registro de tests (colección `resultados`), igual que la web
+  /// (`obtenerHashesFallados` de tests.js): una pregunta fallada alguna vez
+  /// sigue contando aunque después se acierte. Las preguntas en blanco
+  /// (`estado == 'sinResponder'`) NO cuentan como falladas.
   Future<Set<String>> obtenerTextosFallados(String usuarioId) async {
     final fallados = <String>{};
     try {
       final snapshot = await _firestore
-          .collection('preguntasFalladas')
+          .collection('resultados')
           .where('usuarioId', isEqualTo: usuarioId)
           .get();
 
       for (final doc in snapshot.docs) {
-        final pregunta = doc.data()['pregunta'] as Map<String, dynamic>?;
-        final texto = pregunta?['texto'] as String?;
-        if (texto != null && texto.trim().isNotEmpty) {
-          fallados.add(texto.trim());
+        final detalles =
+            doc.data()['detalleRespuestas'] as List<dynamic>? ?? [];
+        for (final d in detalles) {
+          if (d is! Map<String, dynamic>) continue;
+          final estado = (d['estado'] ?? d['resultado']) as String?;
+          if (estado != 'incorrecta' && estado != 'fallada') continue;
+          final pregunta = d['pregunta'] as Map<String, dynamic>?;
+          final texto = pregunta?['texto'] as String?;
+          if (texto != null && texto.trim().isNotEmpty) {
+            fallados.add(texto.trim());
+          }
         }
       }
     } catch (e) {
