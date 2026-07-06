@@ -25,6 +25,9 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   int _preguntasFalladas = 0;
   bool _soloNuevas = false;
   bool _soloFalladas = false;
+  int? _disponiblesConFiltro; // preguntas que quedan tras aplicar el filtro
+  bool _calculandoDisponibles = false;
+  int _peticionDisponibles = 0; // descarta cálculos obsoletos
 
   @override
   void initState() {
@@ -79,6 +82,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
         }
       }
     });
+    _recalcularDisponibles();
   }
 
   void _toggleSubtema(String subtemaId) {
@@ -89,6 +93,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
         _temasSeleccionados.add(subtemaId);
       }
     });
+    _recalcularDisponibles();
   }
 
   void _toggleExpandir(String temaId) {
@@ -119,6 +124,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
       _temasSeleccionados.addAll(List<String>.from(config['temasIds']));
       _numeroPreguntas = config['numPreguntas'];
     });
+    _recalcularDisponibles();
   }
 
   Future<void> _practicarFalladas() async {
@@ -370,11 +376,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                   if (_temasSeleccionados.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        '${_contarPreguntasDisponibles(temasService)} preguntas verificadas disponibles',
-                        style: GoogleFonts.inter(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600),
-                        textAlign: TextAlign.center,
-                      ),
+                      child: _buildDisponiblesText(temasService),
                     ),
 
                   ElevatedButton(
@@ -399,6 +401,117 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
   int _contarPreguntasDisponibles(TemasService temasService) {
     return temasService.getPreguntasVerificadas(_temasSeleccionados.toList()).length;
+  }
+
+  /// Recalcula cuántas preguntas quedan tras aplicar el filtro activo.
+  /// Sin filtro (o sin temas) no hay número filtrado que mostrar.
+  Future<void> _recalcularDisponibles() async {
+    if ((!_soloNuevas && !_soloFalladas) || _temasSeleccionados.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _disponiblesConFiltro = null;
+          _calculandoDisponibles = false;
+        });
+      }
+      return;
+    }
+
+    final authService = context.read<AuthService>();
+    final temasService = context.read<TemasService>();
+    final testService = context.read<TestService>();
+
+    if (authService.userId == null) return;
+
+    // Marca de petición: si el usuario cambia la selección mientras se calcula,
+    // descartamos las respuestas viejas y nos quedamos solo con la última.
+    final miPeticion = ++_peticionDisponibles;
+    setState(() => _calculandoDisponibles = true);
+
+    final pool =
+        temasService.getPreguntasVerificadas(_temasSeleccionados.toList());
+
+    final filtradas = _soloNuevas
+        ? await testService.filtrarSoloNuevas(pool, authService.userId!)
+        : await testService.filtrarSoloFalladas(pool, authService.userId!);
+
+    if (!mounted || miPeticion != _peticionDisponibles) return;
+
+    setState(() {
+      _disponiblesConFiltro = filtradas.length;
+      _calculandoDisponibles = false;
+    });
+  }
+
+  /// Texto de preguntas disponibles. Reacciona al filtro seleccionado.
+  Widget _buildDisponiblesText(TemasService temasService) {
+    // Sin filtro: total de verificadas de los temas elegidos.
+    if (!_soloNuevas && !_soloFalladas) {
+      return Text(
+        '${_contarPreguntasDisponibles(temasService)} preguntas verificadas disponibles',
+        style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    // Con filtro pero aún calculando.
+    if (_calculandoDisponibles || _disponiblesConFiltro == null) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            height: 14,
+            width: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Calculando preguntas disponibles…',
+            style: GoogleFonts.inter(
+                fontSize: 14, color: AppColors.textSecondary),
+          ),
+        ],
+      );
+    }
+
+    final disp = _disponiblesConFiltro!;
+    final color = _soloNuevas ? AppColors.success : AppColors.error;
+    final etiqueta = _soloNuevas ? 'nuevas' : 'falladas';
+
+    if (disp == 0) {
+      return Text(
+        _soloNuevas
+            ? 'No quedan preguntas nuevas en estos temas'
+            : 'No tienes preguntas falladas en estos temas',
+        style: GoogleFonts.inter(
+            fontSize: 14, color: color, fontWeight: FontWeight.w600),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    final usara = disp < _numeroPreguntas ? disp : _numeroPreguntas;
+    return Column(
+      children: [
+        Text(
+          '$disp preguntas $etiqueta disponibles',
+          style: GoogleFonts.inter(
+              fontSize: 14, color: color, fontWeight: FontWeight.w600),
+          textAlign: TextAlign.center,
+        ),
+        if (disp < _numeroPreguntas)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              'El test tendrá $usara (todas las disponibles)',
+              style: GoogleFonts.inter(
+                  fontSize: 12, color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildFiltrosCard() {
@@ -427,10 +540,13 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                 color: AppColors.textSecondary,
               ),
             ),
-            onChanged: (v) => setState(() {
-              _soloNuevas = v ?? false;
-              if (_soloNuevas) _soloFalladas = false;
-            }),
+            onChanged: (v) {
+              setState(() {
+                _soloNuevas = v ?? false;
+                if (_soloNuevas) _soloFalladas = false;
+              });
+              _recalcularDisponibles();
+            },
           ),
           const Divider(height: 1),
           CheckboxListTile(
@@ -452,10 +568,13 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                 color: AppColors.textSecondary,
               ),
             ),
-            onChanged: (v) => setState(() {
-              _soloFalladas = v ?? false;
-              if (_soloFalladas) _soloNuevas = false;
-            }),
+            onChanged: (v) {
+              setState(() {
+                _soloFalladas = v ?? false;
+                if (_soloFalladas) _soloNuevas = false;
+              });
+              _recalcularDisponibles();
+            },
           ),
         ],
       ),
