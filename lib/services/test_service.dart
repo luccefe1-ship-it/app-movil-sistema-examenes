@@ -543,6 +543,22 @@ List<PreguntaEmbebida> getRandomPreguntas(
     return falladas;
   }
 
+  /// Carga del historial de tests las claves de preguntas VISTAS y FALLADAS.
+  /// Devuelve {'vistos': Set, 'fallados': Set}. Pensado para que la pantalla
+  /// de configuración lo pida UNA vez y luego cuente por tema en memoria,
+  /// sin releer Firestore por cada tarjeta.
+  Future<Map<String, Set<String>>> cargarClavesHistorial(
+      String usuarioId) async {
+    return _leerHistorialClaves(usuarioId);
+  }
+
+  /// Comprueba si una pregunta del pool coincide con un conjunto de claves del
+  /// historial (por `temaId_indice` o, como respaldo, por texto). Se usa para
+  /// contar falladas ( coincide == true ) o nuevas ( coincide == false ).
+  bool coincideEnHistorial(PreguntaEmbebida p, Set<String> claves) {
+    return _clavesPregunta(p).intersection(claves).isNotEmpty;
+  }
+
   // ─────────────────────────────────────────────
   // MÉTODOS PARA EXPLICACION_MODAL
   // ─────────────────────────────────────────────
