@@ -23,6 +23,8 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   bool _isLoading = true;
   bool _isStarting = false;
   int _preguntasFalladas = 0;
+  bool _soloNuevas = false;
+  bool _soloFalladas = false;
 
   @override
   void initState() {
@@ -200,8 +202,34 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
       return;
     }
 
-    final preguntas = testService.getRandomPreguntas(todasPreguntas, _numeroPreguntas);
+    // NUEVO: aplicar filtro "solo nuevas" / "solo falladas" (excluyentes)
+    List<PreguntaEmbebida> pool = todasPreguntas;
+    final authService = context.read<AuthService>();
+    if (authService.userId != null && (_soloNuevas || _soloFalladas)) {
+      pool = _soloNuevas
+          ? await testService.filtrarSoloNuevas(
+              todasPreguntas, authService.userId!)
+          : await testService.filtrarSoloFalladas(
+              todasPreguntas, authService.userId!);
 
+      if (!mounted) return;
+
+      if (pool.isEmpty) {
+        setState(() => _isStarting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_soloNuevas
+                ? '¡Ya has hecho todas las preguntas de estos temas! No quedan preguntas nuevas.'
+                : 'No tienes preguntas falladas registradas en estos temas.'),
+          ),
+        );
+        return;
+      }
+    }
+
+    final preguntas = testService.getRandomPreguntas(pool, _numeroPreguntas);
+
+    if (!mounted) return;
     setState(() => _isStarting = false);
 
     Navigator.of(context).push(
@@ -327,6 +355,16 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
                   ...temasService.temasPrincipales.map((tema) => _buildTemaCard(tema, temasService)),
 
+                  const SizedBox(height: 24),
+
+                  // Filtros de preguntas (solo nuevas / solo falladas)
+                  Text('Filtrar preguntas (opcional)',
+                      style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 8),
+                  _buildFiltrosCard(),
                   const SizedBox(height: 32),
 
                   if (_temasSeleccionados.isNotEmpty)
@@ -361,6 +399,73 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
   int _contarPreguntasDisponibles(TemasService temasService) {
     return temasService.getPreguntasVerificadas(_temasSeleccionados.toList()).length;
+  }
+
+  Widget _buildFiltrosCard() {
+    return Card(
+      color: AppColors.cardBackground,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        children: [
+          CheckboxListTile(
+            value: _soloNuevas,
+            activeColor: AppColors.success,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text(
+              '🆕 Solo preguntas nuevas',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            subtitle: Text(
+              'Que no te hayan salido nunca en ningún test',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            onChanged: (v) => setState(() {
+              _soloNuevas = v ?? false;
+              if (_soloNuevas) _soloFalladas = false;
+            }),
+          ),
+          const Divider(height: 1),
+          CheckboxListTile(
+            value: _soloFalladas,
+            activeColor: AppColors.error,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text(
+              '🔴 Solo preguntas falladas',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _preguntasFalladas > 0
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+              ),
+            ),
+            subtitle: Text(
+              _preguntasFalladas > 0
+                  ? 'Solo las que has fallado y aún no has acertado'
+                  : 'No tienes preguntas falladas registradas',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            onChanged: _preguntasFalladas == 0
+                ? null
+                : (v) => setState(() {
+                      _soloFalladas = v ?? false;
+                      if (_soloFalladas) _soloNuevas = false;
+                    }),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTemaCard(Tema tema, TemasService temasService) {
