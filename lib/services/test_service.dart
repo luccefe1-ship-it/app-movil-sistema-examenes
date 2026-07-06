@@ -447,6 +447,91 @@ List<PreguntaEmbebida> getRandomPreguntas(
   }
 
   // ─────────────────────────────────────────────
+  // FILTROS DE POOL: SOLO NUEVAS / SOLO FALLADAS
+  // Replica el comportamiento de la web (tests.js): se comparan las
+  // preguntas por su texto (mismo criterio que usa la plataforma web).
+  // ─────────────────────────────────────────────
+
+  /// Conjunto de textos de preguntas que el usuario YA ha visto alguna vez.
+  /// Se leen del registro de tests (colección `resultados`), por lo que
+  /// cuenta cualquier test realizado por el usuario.
+  Future<Set<String>> obtenerTextosVistos(String usuarioId) async {
+    final vistos = <String>{};
+    try {
+      final snapshot = await _firestore
+          .collection('resultados')
+          .where('usuarioId', isEqualTo: usuarioId)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final detalles =
+            doc.data()['detalleRespuestas'] as List<dynamic>? ?? [];
+        for (final d in detalles) {
+          if (d is! Map<String, dynamic>) continue;
+          final pregunta = d['pregunta'] as Map<String, dynamic>?;
+          final texto = pregunta?['texto'] as String?;
+          if (texto != null && texto.trim().isNotEmpty) {
+            vistos.add(texto.trim());
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo textos vistos: $e');
+    }
+    return vistos;
+  }
+
+  /// Conjunto de textos de preguntas falladas según el registro propio de la
+  /// app (colección `preguntasFalladas`). Una pregunta desaparece de este
+  /// registro en cuanto el usuario la acierta.
+  Future<Set<String>> obtenerTextosFallados(String usuarioId) async {
+    final fallados = <String>{};
+    try {
+      final snapshot = await _firestore
+          .collection('preguntasFalladas')
+          .where('usuarioId', isEqualTo: usuarioId)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final pregunta = doc.data()['pregunta'] as Map<String, dynamic>?;
+        final texto = pregunta?['texto'] as String?;
+        if (texto != null && texto.trim().isNotEmpty) {
+          fallados.add(texto.trim());
+        }
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo textos fallados: $e');
+    }
+    return fallados;
+  }
+
+  /// Devuelve solo las preguntas del pool que el usuario NUNCA ha visto.
+  Future<List<PreguntaEmbebida>> filtrarSoloNuevas(
+    List<PreguntaEmbebida> pool,
+    String usuarioId,
+  ) async {
+    final vistos = await obtenerTextosVistos(usuarioId);
+    final nuevas =
+        pool.where((p) => !vistos.contains(p.texto.trim())).toList();
+    debugPrint(
+        '🆕 Nuevas: ${nuevas.length} de ${pool.length} (vistas: ${vistos.length})');
+    return nuevas;
+  }
+
+  /// Devuelve solo las preguntas del pool que están en el registro de falladas
+  /// propio de la app.
+  Future<List<PreguntaEmbebida>> filtrarSoloFalladas(
+    List<PreguntaEmbebida> pool,
+    String usuarioId,
+  ) async {
+    final fallados = await obtenerTextosFallados(usuarioId);
+    final falladas =
+        pool.where((p) => fallados.contains(p.texto.trim())).toList();
+    debugPrint('🔴 Falladas: ${falladas.length} de ${pool.length}');
+    return falladas;
+  }
+
+  // ─────────────────────────────────────────────
   // MÉTODOS PARA EXPLICACION_MODAL
   // ─────────────────────────────────────────────
 
