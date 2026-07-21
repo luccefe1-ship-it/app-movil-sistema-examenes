@@ -208,20 +208,49 @@ class _ComparativaCorteState extends State<ComparativaCorte> {
                   ),
                   const SizedBox(height: 8),
                   _linea(
-                    'Última plaza en ${DatosConvocatoria.ambitoCorto}: ',
+                    'Tu 1er ejercicio: ',
+                    '${fmtNota(r.notaExtrapolada)} / ${r.cfg.notaMaxima.toStringAsFixed(0)}',
+                  ),
+                  _linea(
+                    'Nota del último con plaza en ${DatosConvocatoria.ambitoCorto}: ',
                     '${fmtNota(r.cfg.notaCorteFinal)} / ${r.cfg.notaMaximaProceso.toStringAsFixed(0)}',
                     pie: '(${r.cfg.plazasAmbito} plazas)',
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Debes superar además (eliminatorios):',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   _linea(
-                    'Con tu 1er ejercicio (${fmtNota(r.notaExtrapolada)}/${r.cfg.notaMaxima.toStringAsFixed(0)}) necesitarías ',
-                    '${fmtNota(r.puntosNecesariosRestantes!)} / ${r.puntosRestantesMax!.toStringAsFixed(0)}',
-                    cola: ' en el 2º y 3er ejercicio',
+                    '2º ejercicio (${r.cfg.ejercicio2Nombre}): ',
+                    'mínimo ${fmtNota(r.cfg.ejercicio2Min!)} / ${r.cfg.ejercicio2Max}',
+                  ),
+                  _linea(
+                    '3er ejercicio (${r.cfg.ejercicio3Nombre}): ',
+                    'mínimo ${fmtNota(r.cfg.ejercicio3Min!)} / ${r.cfg.ejercicio3Max}',
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    r.plazaAlcanzable != true
+                        ? 'Ni con el máximo en el 2º y 3er ejercicio llegarías al corte: sube la nota del test.'
+                        : r.plazaSoloConMinimos == true
+                            ? 'Aprobándolos por el mínimo sumarías ${fmtNota(r.notaConMinimos!)} / ${r.cfg.notaMaximaProceso.toStringAsFixed(0)} → ya superarías al último con plaza.'
+                            : 'Aprobándolos por el mínimo sumarías ${fmtNota(r.notaConMinimos!)} / ${r.cfg.notaMaximaProceso.toStringAsFixed(0)}; para el corte necesitarías ${fmtNota(r.puntosExtraSobreMinimos!)} puntos más entre esos dos ejercicios.',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: r.plazaAlcanzable == true
+                          ? AppColors.success
+                          : AppColors.error,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _supuesto(
-                    r.plazaAlcanzable == true
-                        ? 'El 1er ejercicio solo exige el mínimo fijo; la plaza se decide por la suma de los 3 ejercicios.'
-                        : 'Ni con el máximo en los otros dos ejercicios llegarías: necesitas subir la nota del test.',
+                    'Cada ejercicio es eliminatorio: hay que alcanzar su mínimo. Mínimos: Orden PJC/1437/2024 (BOE).',
                   ),
                 ],
               )

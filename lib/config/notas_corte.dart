@@ -22,6 +22,13 @@ class TurnoConvocatoria {
   final double notaCorteFinal;
   final int plazas;
   final int plazasAmbito;
+  // 2º y 3er ejercicio (solo turno libre; null en interna): máximo y mínimo oficial
+  final String? ejercicio2Nombre;
+  final int? ejercicio2Max;
+  final double? ejercicio2Min;
+  final String? ejercicio3Nombre;
+  final int? ejercicio3Max;
+  final double? ejercicio3Min;
 
   const TurnoConvocatoria({
     required this.nombre,
@@ -37,6 +44,12 @@ class TurnoConvocatoria {
     required this.notaCorteFinal,
     required this.plazas,
     required this.plazasAmbito,
+    this.ejercicio2Nombre,
+    this.ejercicio2Max,
+    this.ejercicio2Min,
+    this.ejercicio3Nombre,
+    this.ejercicio3Max,
+    this.ejercicio3Min,
   });
 }
 
@@ -81,6 +94,12 @@ class DatosConvocatoria {
           notaCorteFinal: 52.85,
           plazas: 731,
           plazasAmbito: 180,
+          ejercicio2Nombre: 'práctico',
+          ejercicio2Max: 15,
+          ejercicio2Min: 7.5,
+          ejercicio3Nombre: 'escrito',
+          ejercicio3Max: 25,
+          ejercicio3Min: 12.5,
         ),
         'interna': TurnoConvocatoria(
           nombre: 'Promoción interna',
@@ -117,6 +136,12 @@ class DatosConvocatoria {
           notaCorteFinal: 71.10,
           plazas: 855,
           plazasAmbito: 310,
+          ejercicio2Nombre: 'práctico',
+          ejercicio2Max: 20,
+          ejercicio2Min: 10,
+          ejercicio3Nombre: 'informática',
+          ejercicio3Max: 20,
+          ejercicio3Min: 10,
         ),
         'interna': TurnoConvocatoria(
           nombre: 'Promoción interna',
@@ -219,6 +244,9 @@ class ResultadoComparativa {
   final double? puntosRestantesMax;
   final double? puntosNecesariosRestantes;
   final bool? plazaAlcanzable;
+  final double? notaConMinimos; // nota total si aprueba 2º y 3º por el mínimo
+  final bool? plazaSoloConMinimos; // ¿basta aprobar 2º y 3º por el mínimo?
+  final double? puntosExtraSobreMinimos; // puntos extra (sobre los mínimos) para el corte
   final double? puntosConcursoNecesarios;
   final FiabilidadMuestra fiabilidad;
 
@@ -237,6 +265,9 @@ class ResultadoComparativa {
     required this.puntosRestantesMax,
     required this.puntosNecesariosRestantes,
     required this.plazaAlcanzable,
+    required this.notaConMinimos,
+    required this.plazaSoloConMinimos,
+    required this.puntosExtraSobreMinimos,
     required this.puntosConcursoNecesarios,
     required this.fiabilidad,
   });
@@ -274,6 +305,9 @@ ResultadoComparativa? calcularNotaOficial({
   double? puntosRestantesMax;
   double? puntosNecesariosRestantes;
   bool? plazaAlcanzable;
+  double? notaConMinimos;
+  bool? plazaSoloConMinimos;
+  double? puntosExtraSobreMinimos;
   double? puntosConcursoNecesarios;
 
   if (turno == 'libre') {
@@ -281,6 +315,13 @@ ResultadoComparativa? calcularNotaOficial({
     puntosNecesariosRestantes =
         math.max(0.0, cfg.notaCorteFinal - notaExtrapolada);
     plazaAlcanzable = puntosNecesariosRestantes <= puntosRestantesMax;
+    // Cada ejercicio es eliminatorio con su propio mínimo oficial (BOE).
+    final minRestantes =
+        (cfg.ejercicio2Min ?? 0) + (cfg.ejercicio3Min ?? 0);
+    notaConMinimos = notaExtrapolada + minRestantes;
+    plazaSoloConMinimos = notaConMinimos >= cfg.notaCorteFinal;
+    puntosExtraSobreMinimos =
+        math.max(0.0, cfg.notaCorteFinal - notaConMinimos);
   } else {
     // Promoción interna: ejercicio único + méritos del concurso
     puntosConcursoNecesarios =
@@ -312,6 +353,9 @@ ResultadoComparativa? calcularNotaOficial({
     puntosRestantesMax: puntosRestantesMax,
     puntosNecesariosRestantes: puntosNecesariosRestantes,
     plazaAlcanzable: plazaAlcanzable,
+    notaConMinimos: notaConMinimos,
+    plazaSoloConMinimos: plazaSoloConMinimos,
+    puntosExtraSobreMinimos: puntosExtraSobreMinimos,
     puntosConcursoNecesarios: puntosConcursoNecesarios,
     fiabilidad: fiabilidad,
   );
