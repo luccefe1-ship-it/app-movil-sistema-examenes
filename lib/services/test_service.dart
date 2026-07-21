@@ -138,6 +138,14 @@ class TestService extends ChangeNotifier {
       final correctas = resultados['correctas'] as int;
       final porcentaje = total > 0 ? ((correctas / total) * 100).round() : 0;
 
+      // Actualizar el contador de falladas ANTES de guardar el resultado,
+      // para que el "seed" desde el historial no incluya el test actual.
+      await _actualizarPreguntasFalladas(
+        usuarioId: usuarioId,
+        preguntas: preguntas,
+        respuestasUsuario: respuestasUsuario,
+      );
+
       // Guardar resultado (misma estructura que la web)
       await _firestore.collection('resultados').add({
         'usuarioId': usuarioId,
@@ -160,13 +168,6 @@ class TestService extends ChangeNotifier {
         'origen': 'app_movil', // Identificador de origen
       });
 
-      // Actualizar preguntasFalladas (igual que la web)
-      await _actualizarPreguntasFalladas(
-        usuarioId: usuarioId,
-        preguntas: preguntas,
-        respuestasUsuario: respuestasUsuario,
-      );
-
       // Registrar en progresoSimple para que cuente en el registro diario
       await _registrarEnProgresoSimple(
         usuarioId: usuarioId,
@@ -180,62 +181,113 @@ class TestService extends ChangeNotifier {
     }
   }
 
-  /// Añade falladas nuevas y elimina las que se han acertado en este test
+  /// Actualiza el contador de falladas por pregunta:
+  ///   fallosPendientes  → nº que se muestra (baja al acertar, sube al fallar)
+  ///   fallosAcumulados  → valor a restaurar si se re-falla tras aprenderla
+  ///   aprendida         → true cuando pendientes llega a 0 tras haber fallado
+  /// Debe llamarse ANTES de guardar el resultado (para que el "seed" desde el
+  /// historial no incluya el test actual).
   Future<void> _actualizarPreguntasFalladas({
     required String usuarioId,
     required List<PreguntaEmbebida> preguntas,
     required Map<String, String?> respuestasUsuario,
   }) async {
-    final batch = _firestore.batch();
     final colRef = _firestore.collection('preguntasFalladas');
 
-    // Obtener falladas actuales del usuario
+    // Falladas actuales del usuario
     final snapshot =
         await colRef.where('usuarioId', isEqualTo: usuarioId).get();
-
-    final falladasActuales =
-        <String, String>{}; // key: temaId_indice, value: docId
+    final docIdPorKey = <String, String>{};
+    final datosPorKey = <String, Map<String, dynamic>>{};
     for (final doc in snapshot.docs) {
       final d = doc.data();
       final key = '${d['temaId']}_${d['indice']}';
-      falladasActuales[key] = doc.id;
+      docIdPorKey[key] = doc.id;
+      datosPorKey[key] = d;
     }
+
+    // Conteo histórico: solo se calcula si hay que migrar docs antiguos (binarios)
+    Map<String, int>? histConteo;
+
+    final batch = _firestore.batch();
 
     for (final p in preguntas) {
       final respuesta = respuestasUsuario[p.id];
+      if (respuesta == null) continue; // en blanco → no cuenta
       final key = '${p.temaId}_${p.indexEnTema}';
+      final esAcierto = respuesta == p.respuestaCorrecta;
+      final existe = datosPorKey.containsKey(key);
 
-      if (respuesta == null) continue; // sin responder → no tocar
+      int pendientes;
+      int acumulados;
+      bool aprendida;
 
-      if (respuesta == p.respuestaCorrecta) {
-        // Acertada → eliminar de falladas si existía
-        if (falladasActuales.containsKey(key)) {
-          batch.delete(colRef.doc(falladasActuales[key]!));
+      if (existe) {
+        final d = datosPorKey[key]!;
+        if (d.containsKey('fallosPendientes')) {
+          pendientes = (d['fallosPendientes'] as num).toInt();
+          acumulados = (d['fallosAcumulados'] as num?)?.toInt() ?? pendientes;
+          aprendida = d['aprendida'] as bool? ?? false;
+        } else {
+          // Doc antiguo (formato binario) → sembrar desde el historial
+          histConteo ??= await contarFallosHistorial(usuarioId);
+          final h = fallosDePregunta(p, histConteo);
+          pendientes = h > 0 ? h : 1;
+          acumulados = pendientes;
+          aprendida = false;
         }
       } else {
-        // Fallada → añadir si no existía
-        if (!falladasActuales.containsKey(key)) {
-          final newDoc = colRef.doc();
-          batch.set(newDoc, {
-            'usuarioId': usuarioId,
-            'temaId': p.temaId,
-            'indice': p.indexEnTema,
-            'temaNombre': p.temaNombre ?? '',
-            'pregunta': {
-              'texto': p.texto,
-              'opciones': p.opciones
-                  .map((o) => {
-                        'letra': o.letra,
-                        'texto': o.texto,
-                        'esCorrecta': o.esCorrecta,
-                      })
-                  .toList(),
-              'respuestaCorrecta': p.respuestaCorrecta,
-            },
-            'fechaFallo': FieldValue.serverTimestamp(),
-          });
+        pendientes = 0;
+        acumulados = 0;
+        aprendida = false;
+      }
+
+      // Aplicar el resultado del test actual
+      if (esAcierto) {
+        if (pendientes > 0) {
+          pendientes -= 1;
+          if (pendientes == 0) aprendida = true;
+        }
+      } else {
+        if (aprendida) {
+          pendientes = acumulados + 1;
+          acumulados = pendientes;
+          aprendida = false;
+        } else {
+          pendientes += 1;
+          acumulados = pendientes;
         }
       }
+
+      // Si nunca estuvo fallada y ahora tampoco, no crear documento
+      if (!existe && pendientes == 0 && !aprendida) continue;
+
+      final docRef = existe ? colRef.doc(docIdPorKey[key]) : colRef.doc();
+      batch.set(
+        docRef,
+        {
+          'usuarioId': usuarioId,
+          'temaId': p.temaId,
+          'indice': p.indexEnTema,
+          'temaNombre': p.temaNombre ?? '',
+          'pregunta': {
+            'texto': p.texto,
+            'opciones': p.opciones
+                .map((o) => {
+                      'letra': o.letra,
+                      'texto': o.texto,
+                      'esCorrecta': o.esCorrecta,
+                    })
+                .toList(),
+            'respuestaCorrecta': p.respuestaCorrecta,
+          },
+          'fallosPendientes': pendientes,
+          'fallosAcumulados': acumulados,
+          'aprendida': aprendida,
+          'fechaActualizacion': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
     }
 
     await batch.commit();
@@ -354,13 +406,20 @@ class TestService extends ChangeNotifier {
   // PREGUNTAS FALLADAS (desde colección preguntasFalladas)
   // ─────────────────────────────────────────────
 
+  /// Nº de pregunta con fallos pendientes (> 0). Las "aprendidas" no cuentan.
   Future<int> contarPreguntasFalladas(String usuarioId) async {
     try {
       final snapshot = await _firestore
           .collection('preguntasFalladas')
           .where('usuarioId', isEqualTo: usuarioId)
           .get();
-      return snapshot.docs.length;
+      return snapshot.docs.where((doc) {
+        final d = doc.data();
+        final pend = d.containsKey('fallosPendientes')
+            ? (d['fallosPendientes'] as num).toInt()
+            : 1; // doc antiguo (binario) = 1 pendiente
+        return pend > 0;
+      }).length;
     } catch (e) {
       debugPrint('Error contando falladas: $e');
       return 0;
@@ -384,6 +443,12 @@ class TestService extends ChangeNotifier {
         final temaId = d['temaId'] as String?;
         final indice = d['indice'] as int?;
         if (temaId == null || indice == null) continue;
+
+        // Excluir las aprendidas (sin fallos pendientes)
+        final pend = d.containsKey('fallosPendientes')
+            ? (d['fallosPendientes'] as num).toInt()
+            : 1; // doc antiguo (binario) = 1 pendiente
+        if (pend <= 0) continue;
 
         // Resolver nombre del tema padre
         String temaNombre = d['temaNombre'] as String? ?? '';
@@ -528,18 +593,15 @@ class TestService extends ChangeNotifier {
     return nuevas;
   }
 
-  /// Devuelve solo las preguntas del pool que el usuario ha FALLADO alguna vez
-  /// en el historial de tests de la app.
+  /// Devuelve solo las preguntas del pool con fallos PENDIENTES (> 0), usando
+  /// el contador vivo de `preguntasFalladas`. Las "aprendidas" quedan fuera.
   Future<List<PreguntaEmbebida>> filtrarSoloFalladas(
     List<PreguntaEmbebida> pool,
     String usuarioId,
   ) async {
-    final historial = await _leerHistorialClaves(usuarioId);
-    final fallados = historial['fallados']!;
-    final falladas = pool
-        .where((p) => _clavesPregunta(p).intersection(fallados).isNotEmpty)
-        .toList();
-    debugPrint('🔴 Falladas: ${falladas.length} de ${pool.length}');
+    final conteo = await conteoFallosPara(pool, usuarioId);
+    final falladas = pool.where((p) => (conteo[p.id] ?? 0) > 0).toList();
+    debugPrint('🔴 Falladas (pendientes): ${falladas.length} de ${pool.length}');
     return falladas;
   }
 
@@ -597,15 +659,57 @@ class TestService extends ChangeNotifier {
     return maximo;
   }
 
-  /// Mapa listo para la pantalla del test: idPregunta → nº de fallos.
+  /// Mapa listo para la pantalla del test: idPregunta → nº de fallos PENDIENTES.
+  /// Lee el contador vivo de `preguntasFalladas` (no el historial), de modo que
+  /// el número baja al acertar y sube al fallar.
   Future<Map<String, int>> conteoFallosPara(
     List<PreguntaEmbebida> preguntas,
     String usuarioId,
   ) async {
-    final conteo = await contarFallosHistorial(usuarioId);
+    final porKey = <String, int>{};
+    try {
+      final snapshot = await _firestore
+          .collection('preguntasFalladas')
+          .where('usuarioId', isEqualTo: usuarioId)
+          .get();
+      for (final doc in snapshot.docs) {
+        final d = doc.data();
+        final pend = d.containsKey('fallosPendientes')
+            ? (d['fallosPendientes'] as num).toInt()
+            : 1; // doc antiguo (binario) = 1 pendiente
+        final aprendida = d['aprendida'] == true;
+        // -1 = aprendida (fallada en el pasado, ya sin pendientes)
+        porKey['${d['temaId']}_${d['indice']}'] = aprendida ? -1 : pend;
+      }
+    } catch (e) {
+      debugPrint('Error leyendo conteo de falladas: $e');
+    }
     return {
-      for (final p in preguntas) p.id: fallosDePregunta(p, conteo),
+      for (final p in preguntas)
+        p.id: porKey['${p.temaId}_${p.indexEnTema}'] ?? 0,
     };
+  }
+
+  /// Conjunto de claves `temaId_indice` con fallos PENDIENTES (> 0).
+  /// Se usa para contar, por tema, cuántas falladas quedan (excluye aprendidas).
+  Future<Set<String>> clavesFalladasPendientes(String usuarioId) async {
+    final claves = <String>{};
+    try {
+      final snapshot = await _firestore
+          .collection('preguntasFalladas')
+          .where('usuarioId', isEqualTo: usuarioId)
+          .get();
+      for (final doc in snapshot.docs) {
+        final d = doc.data();
+        final pend = d.containsKey('fallosPendientes')
+            ? (d['fallosPendientes'] as num).toInt()
+            : 1; // doc antiguo (binario) = 1 pendiente
+        if (pend > 0) claves.add('${d['temaId']}_${d['indice']}');
+      }
+    } catch (e) {
+      debugPrint('Error leyendo claves falladas: $e');
+    }
+    return claves;
   }
 
   // ─────────────────────────────────────────────

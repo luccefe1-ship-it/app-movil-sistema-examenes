@@ -192,9 +192,10 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
     final preguntas = testService.getRandomPreguntas(pool, _numeroPreguntas);
 
-    // Solo en modo "falladas": nº de veces que se ha fallado cada pregunta
+    // Nº de fallos pendientes de cada pregunta, para el badge en el test
+    // (en cualquier test, no solo en el de falladas).
     Map<String, int>? conteoFallos;
-    if (_soloFalladas && authService.userId != null) {
+    if (authService.userId != null) {
       conteoFallos =
           await testService.conteoFallosPara(preguntas, authService.userId!);
     }
@@ -434,22 +435,21 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
     setState(() => _cargandoConteos = true);
 
-    // El historial solo hace falta si hay filtro de nuevas/falladas.
-    if ((_soloNuevas || _soloFalladas) &&
-        (_clavesVistos == null || _clavesFallados == null)) {
+    // "Nuevas" usa el historial (vistas). "Falladas" usa el contador vivo de
+    // preguntasFalladas (solo pendientes > 0), no el historial.
+    if (_soloNuevas && _clavesVistos == null) {
       final historial =
           await testService.cargarClavesHistorial(authService.userId!);
       _clavesVistos = historial['vistos'] ?? <String>{};
       _clavesFallados = historial['fallados'] ?? <String>{};
     }
+    Set<String> falladasPend = <String>{};
+    if (_soloFalladas) {
+      falladasPend =
+          await testService.clavesFalladasPendientes(authService.userId!);
+    }
 
     if (!mounted) return;
-
-    final claves = _soloNuevas
-        ? (_clavesVistos ?? <String>{})
-        : (_clavesFallados ?? <String>{});
-    final usaHistorial = _soloNuevas || _soloFalladas;
-    final esFalladas = _soloFalladas;
 
     final Map<String, int> conteos = {};
     for (final tema in temasService.todosTemas) {
@@ -457,10 +457,12 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
       for (final p in tema.preguntas) {
         if (!p.verificada) continue;
         if (_soloOficiales && !p.esOficial) continue;
-        if (usaHistorial) {
-          final coincide = testService.coincideEnHistorial(p, claves);
-          // Falladas: cuenta si coincide. Nuevas: cuenta si NO coincide.
-          if (esFalladas ? !coincide : coincide) continue;
+        if (_soloFalladas) {
+          if (!falladasPend.contains('${p.temaId}_${p.indexEnTema}')) continue;
+        } else if (_soloNuevas) {
+          final coincide =
+              testService.coincideEnHistorial(p, _clavesVistos ?? <String>{});
+          if (coincide) continue; // nuevas: excluir las ya vistas
         }
         n++;
       }

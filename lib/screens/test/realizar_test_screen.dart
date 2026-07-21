@@ -273,6 +273,45 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
     );
   }
 
+  // Badge con el nº de fallos pendientes de la pregunta, o "Aprendida tras
+  // fallo" (valor -1). Si no hay fallos, no muestra nada.
+  Widget _buildBadgeFallos(PreguntaEmbebida pregunta) {
+    final valor = widget.conteoFallos?[pregunta.id] ?? 0;
+    if (valor == 0) return const SizedBox.shrink();
+
+    final aprendida = valor < 0;
+    final color = aprendida ? AppColors.success : AppColors.error;
+    final texto = aprendida
+        ? 'Aprendida tras fallo'
+        : (valor == 1 ? 'Fallada 1 vez' : 'Fallada $valor veces');
+    final icono = aprendida ? Icons.verified_outlined : Icons.close_rounded;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            texto,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPregunta(PreguntaEmbebida pregunta) {
     final respondida = _yaRespondidas.contains(pregunta.id);
     final respuestaUsuario = _respuestas[pregunta.id];
@@ -312,6 +351,9 @@ class _RealizarTestScreenState extends State<RealizarTestScreen> {
                 ],
               ),
             ),
+
+          // ── BADGE DE FALLOS PENDIENTES / APRENDIDA ───────
+          _buildBadgeFallos(pregunta),
 
           // Enunciado
           Card(
