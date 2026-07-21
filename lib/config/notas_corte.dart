@@ -215,9 +215,10 @@ class ResultadoComparativa {
   final double notaExtrapolada;
   final bool superaPrimerEjercicio;
   final double difPrimerEjercicio;
-  final double? notaProceso;
-  final double? difProceso;
-  final bool? obtendriaPlaza;
+  // Camino a la plaza (turno libre): puntos del 2º + 3er ejercicio.
+  final double? puntosRestantesMax;
+  final double? puntosNecesariosRestantes;
+  final bool? plazaAlcanzable;
   final double? puntosConcursoNecesarios;
   final FiabilidadMuestra fiabilidad;
 
@@ -233,9 +234,9 @@ class ResultadoComparativa {
     required this.notaExtrapolada,
     required this.superaPrimerEjercicio,
     required this.difPrimerEjercicio,
-    required this.notaProceso,
-    required this.difProceso,
-    required this.obtendriaPlaza,
+    required this.puntosRestantesMax,
+    required this.puntosNecesariosRestantes,
+    required this.plazaAlcanzable,
     required this.puntosConcursoNecesarios,
     required this.fiabilidad,
   });
@@ -266,22 +267,24 @@ ResultadoComparativa? calcularNotaOficial({
   final superaPrimerEjercicio = notaExtrapolada >= cfg.notaCortePrimerEjercicio;
   final difPrimerEjercicio = notaExtrapolada - cfg.notaCortePrimerEjercicio;
 
-  // Proyección al proceso completo (orientativa)
-  double? notaProceso;
-  bool? obtendriaPlaza;
-  double? difProceso;
+  // Camino a la plaza (turno libre) — basado SOLO en el 1er ejercicio real.
+  // El 1er ejercicio NO descarta por ranking: basta el mínimo fijo de las bases.
+  // La plaza se decide por la SUMA de los 3 ejercicios. Calculamos cuántos puntos
+  // harían falta en los dos ejercicios restantes para igualar al último con plaza.
+  double? puntosRestantesMax;
+  double? puntosNecesariosRestantes;
+  bool? plazaAlcanzable;
   double? puntosConcursoNecesarios;
 
   if (turno == 'libre') {
-    // Se asume rendimiento equivalente en los otros dos ejercicios
-    notaProceso = (notaExtrapolada / cfg.notaMaxima) * cfg.notaMaximaProceso;
-    difProceso = notaProceso - cfg.notaCorteFinal;
-    obtendriaPlaza = notaProceso >= cfg.notaCorteFinal;
+    puntosRestantesMax = cfg.notaMaximaProceso - cfg.notaMaxima;
+    puntosNecesariosRestantes =
+        math.max(0.0, cfg.notaCorteFinal - notaExtrapolada);
+    plazaAlcanzable = puntosNecesariosRestantes <= puntosRestantesMax;
   } else {
-    // Promoción interna: la nota total depende de los méritos del concurso
+    // Promoción interna: ejercicio único + méritos del concurso
     puntosConcursoNecesarios =
         math.max(0.0, cfg.notaCorteFinal - notaExtrapolada);
-    obtendriaPlaza = null; // no determinable sin méritos
   }
 
   // Fiabilidad estadística según tamaño de la muestra
@@ -306,9 +309,9 @@ ResultadoComparativa? calcularNotaOficial({
     notaExtrapolada: notaExtrapolada,
     superaPrimerEjercicio: superaPrimerEjercicio,
     difPrimerEjercicio: difPrimerEjercicio,
-    notaProceso: notaProceso,
-    difProceso: difProceso,
-    obtendriaPlaza: obtendriaPlaza,
+    puntosRestantesMax: puntosRestantesMax,
+    puntosNecesariosRestantes: puntosNecesariosRestantes,
+    plazaAlcanzable: plazaAlcanzable,
     puntosConcursoNecesarios: puntosConcursoNecesarios,
     fiabilidad: fiabilidad,
   );

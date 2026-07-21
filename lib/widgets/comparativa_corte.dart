@@ -185,53 +185,44 @@ class _ComparativaCorteState extends State<ComparativaCorte> {
             ),
             const SizedBox(height: 12),
 
-            // ── NIVEL 2: plaza ──
+            // ── NIVEL 2: camino a la plaza (a partir del 1er ejercicio) ──
             if (r.turno == 'libre')
               _bloqueNivel(
-                colorBorde: r.obtendriaPlaza == true
+                colorBorde: r.plazaAlcanzable == true
                     ? AppColors.success
                     : AppColors.error,
-                cabecera: '¿Plaza?',
+                cabecera: 'Camino a la plaza',
                 tag: 'orientativo',
                 hijos: [
                   Text(
-                    r.obtendriaPlaza == true
-                        ? '🏅 HABRÍAS COGIDO PLAZA'
-                        : '📉 FUERA DE PLAZA',
+                    r.plazaAlcanzable == true
+                        ? '🎯 PLAZA AL ALCANCE'
+                        : '📉 PLAZA MUY DIFÍCIL',
                     style: GoogleFonts.inter(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: r.obtendriaPlaza == true
+                      color: r.plazaAlcanzable == true
                           ? AppColors.success
                           : AppColors.error,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _linea(
-                    'Proyección al proceso completo: ',
-                    '${fmtNota(r.notaProceso!)} / ${r.cfg.notaMaximaProceso.toStringAsFixed(0)}',
-                  ),
                   _linea(
                     'Última plaza en ${DatosConvocatoria.ambitoCorto}: ',
                     '${fmtNota(r.cfg.notaCorteFinal)} / ${r.cfg.notaMaximaProceso.toStringAsFixed(0)}',
                     pie: '(${r.cfg.plazasAmbito} plazas)',
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    r.difProceso! >= 0
-                        ? '+${fmtNota(r.difProceso!)} sobre la última plaza'
-                        : 'Te faltarían ${fmtNota(r.difProceso!.abs())} puntos',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: r.obtendriaPlaza == true
-                          ? AppColors.success
-                          : AppColors.error,
-                    ),
+                  _linea(
+                    'Con tu 1er ejercicio (${fmtNota(r.notaExtrapolada)}/${r.cfg.notaMaxima.toStringAsFixed(0)}) necesitarías ',
+                    '${fmtNota(r.puntosNecesariosRestantes!)} / ${r.puntosRestantesMax!.toStringAsFixed(0)}',
+                    cola: ' en el 2º y 3er ejercicio',
                   ),
                   const SizedBox(height: 8),
                   _supuesto(
-                      'Asume un rendimiento equivalente en el 2º y 3er ejercicio.'),
+                    r.plazaAlcanzable == true
+                        ? 'El 1er ejercicio solo exige el mínimo fijo; la plaza se decide por la suma de los 3 ejercicios.'
+                        : 'Ni con el máximo en los otros dos ejercicios llegarías: necesitas subir la nota del test.',
+                  ),
                 ],
               )
             else
