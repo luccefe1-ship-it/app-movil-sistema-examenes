@@ -458,7 +458,9 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
         if (!p.verificada) continue;
         if (_soloOficiales && !p.esOficial) continue;
         if (_soloFalladas) {
-          if (!falladasPend.contains('${p.temaId}_${p.indexEnTema}')) continue;
+          if (!falladasPend.contains(testService.hashPregunta(p.texto))) {
+            continue;
+          }
         } else if (_soloNuevas) {
           final coincide =
               testService.coincideEnHistorial(p, _clavesVistos ?? <String>{});

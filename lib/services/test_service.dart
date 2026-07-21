@@ -181,6 +181,24 @@ class TestService extends ChangeNotifier {
     }
   }
 
+  /// Hash estable del texto de una pregunta. DEBE coincidir con
+  /// generarHashPregunta() de la web para que el contador de falladas se
+  /// comparta entre móvil y web (misma clave por texto).
+  String hashPregunta(String texto) {
+    int hash = 0;
+    for (int i = 0; i < texto.length; i++) {
+      final c = texto.codeUnitAt(i);
+      hash = _int32(_int32(hash << 5) - hash + c);
+    }
+    return 'q_${hash.abs().toRadixString(36)}';
+  }
+
+  int _int32(int x) {
+    x &= 0xFFFFFFFF;
+    if (x >= 0x80000000) x -= 0x100000000;
+    return x;
+  }
+
   /// Actualiza el contador de falladas por pregunta:
   ///   fallosPendientes  → nº que se muestra (baja al acertar, sube al fallar)
   ///   fallosAcumulados  → valor a restaurar si se re-falla tras aprenderla
@@ -201,7 +219,9 @@ class TestService extends ChangeNotifier {
     final datosPorKey = <String, Map<String, dynamic>>{};
     for (final doc in snapshot.docs) {
       final d = doc.data();
-      final key = '${d['temaId']}_${d['indice']}';
+      final preguntaMap = d['pregunta'] as Map<String, dynamic>?;
+      final texto = (preguntaMap?['texto'] ?? '') as String;
+      final key = hashPregunta(texto); // clave compartida con la web
       docIdPorKey[key] = doc.id;
       datosPorKey[key] = d;
     }
@@ -214,7 +234,7 @@ class TestService extends ChangeNotifier {
     for (final p in preguntas) {
       final respuesta = respuestasUsuario[p.id];
       if (respuesta == null) continue; // en blanco → no cuenta
-      final key = '${p.temaId}_${p.indexEnTema}';
+      final key = hashPregunta(p.texto);
       final esAcierto = respuesta == p.respuestaCorrecta;
       final existe = datosPorKey.containsKey(key);
 
@@ -267,6 +287,7 @@ class TestService extends ChangeNotifier {
         docRef,
         {
           'usuarioId': usuarioId,
+          'hash': key, // clave compartida con la web (hash del texto)
           'temaId': p.temaId,
           'indice': p.indexEnTema,
           'temaNombre': p.temaNombre ?? '',
@@ -678,15 +699,16 @@ class TestService extends ChangeNotifier {
             ? (d['fallosPendientes'] as num).toInt()
             : 1; // doc antiguo (binario) = 1 pendiente
         final aprendida = d['aprendida'] == true;
+        final preguntaMap = d['pregunta'] as Map<String, dynamic>?;
+        final texto = (preguntaMap?['texto'] ?? '') as String;
         // -1 = aprendida (fallada en el pasado, ya sin pendientes)
-        porKey['${d['temaId']}_${d['indice']}'] = aprendida ? -1 : pend;
+        porKey[hashPregunta(texto)] = aprendida ? -1 : pend;
       }
     } catch (e) {
       debugPrint('Error leyendo conteo de falladas: $e');
     }
     return {
-      for (final p in preguntas)
-        p.id: porKey['${p.temaId}_${p.indexEnTema}'] ?? 0,
+      for (final p in preguntas) p.id: porKey[hashPregunta(p.texto)] ?? 0,
     };
   }
 
@@ -704,7 +726,11 @@ class TestService extends ChangeNotifier {
         final pend = d.containsKey('fallosPendientes')
             ? (d['fallosPendientes'] as num).toInt()
             : 1; // doc antiguo (binario) = 1 pendiente
-        if (pend > 0) claves.add('${d['temaId']}_${d['indice']}');
+        if (pend > 0) {
+          final preguntaMap = d['pregunta'] as Map<String, dynamic>?;
+          final texto = (preguntaMap?['texto'] ?? '') as String;
+          claves.add(hashPregunta(texto));
+        }
       }
     } catch (e) {
       debugPrint('Error leyendo claves falladas: $e');
