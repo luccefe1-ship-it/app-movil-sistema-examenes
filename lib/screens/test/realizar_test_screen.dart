@@ -13,6 +13,8 @@ class RealizarTestScreen extends StatefulWidget {
   final List<PreguntaEmbebida> preguntas;
   final List<String> temasIds;
   final bool esModoFalladas;
+  // Nº de veces que se ha fallado cada pregunta (solo modo "falladas").
+  final Map<String, int>? conteoFallos;
 
   const RealizarTestScreen({
     super.key,
@@ -20,6 +22,7 @@ class RealizarTestScreen extends StatefulWidget {
     required this.preguntas,
     required this.temasIds,
     this.esModoFalladas = false,
+    this.conteoFallos,
   });
 
   @override
