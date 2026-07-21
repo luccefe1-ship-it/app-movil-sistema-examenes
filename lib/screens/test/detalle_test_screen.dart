@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../config/app_colors.dart';
+import '../../config/notas_corte.dart';
 import '../../models/tema.dart';
 import '../../services/auth_service.dart';
 import '../../services/test_service.dart';
+import '../../widgets/comparativa_corte.dart';
 import '../../widgets/explicacion_modal.dart';
 
 class DetalleTestScreen extends StatelessWidget {
@@ -12,15 +14,45 @@ class DetalleTestScreen extends StatelessWidget {
   final List<PreguntaEmbebida> preguntas;
   final Map<String, String?> respuestasUsuario;
 
+  // Estadísticas guardadas del test (opcionales). Si no se pasan, se calculan
+  // a partir de las respuestas del usuario.
+  final int? correctas;
+  final int? incorrectas;
+  final int? total;
+  final int? sinResponder;
+
   const DetalleTestScreen({
     super.key,
     required this.nombreTest,
     required this.preguntas,
     required this.respuestasUsuario,
+    this.correctas,
+    this.incorrectas,
+    this.total,
+    this.sinResponder,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Calcular estadísticas desde las respuestas (fallback / verificación)
+    int correctasCalc = 0, incorrectasCalc = 0, blancoCalc = 0;
+    for (final p in preguntas) {
+      final r = respuestasUsuario[p.id];
+      if (r == null) {
+        blancoCalc++;
+      } else if (r == p.respuestaCorrecta) {
+        correctasCalc++;
+      } else {
+        incorrectasCalc++;
+      }
+    }
+
+    final int totalEfectivo =
+        (total != null && total! > 0) ? total! : preguntas.length;
+    final int correctasEfectivo = correctas ?? correctasCalc;
+    final int incorrectasEfectivo = incorrectas ?? incorrectasCalc;
+    final int blancoEfectivo = sinResponder ?? blancoCalc;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -32,9 +64,151 @@ class DetalleTestScreen extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: preguntas.length,
-        itemBuilder: (context, index) =>
-            _buildPreguntaCard(context, preguntas[index], index),
+        itemCount: preguntas.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _buildResumen(
+              context,
+              correctasEfectivo,
+              incorrectasEfectivo,
+              blancoEfectivo,
+              totalEfectivo,
+            );
+          }
+          return _buildPreguntaCard(
+              context, preguntas[index - 1], index - 1);
+        },
+      ),
+    );
+  }
+
+  // Cabecera del detalle: nota oficial, tarjetas de estadísticas y el bloque
+  // "¿Habrías aprobado la oposición?" (idéntico a la plataforma web).
+  Widget _buildResumen(
+    BuildContext context,
+    int correctas,
+    int incorrectas,
+    int sinResponder,
+    int total,
+  ) {
+    // Fórmula oficial BOE: acierto +0,60 / error -0,15 → divisor 4. Nota /60.
+    final double penalizacion = incorrectas / kDivisorPenalizacion;
+    final double aciertosNetos = correctas - penalizacion;
+    final int nota = total > 0
+        ? ((aciertosNetos / total) * 60).clamp(0.0, 60.0).round()
+        : 0;
+    final bool aprobado = nota >= 30;
+    final Color colorNota = aprobado ? AppColors.success : AppColors.error;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Tarjeta de resultado (nota + estadísticas) ──
+        Card(
+          color: AppColors.cardBackground,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              children: [
+                Text(
+                  '$correctas / $total',
+                  style: GoogleFonts.inter(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    color: colorNota,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 22, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colorNota.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: colorNota, width: 2),
+                  ),
+                  child: Text(
+                    'Nota: $nota / 60',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: colorNota,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _buildStatChip(
+                        '✅', 'Correctas', correctas, AppColors.success),
+                    _buildStatChip(
+                        '❌', 'Incorrectas', incorrectas, AppColors.error),
+                    _buildStatChip('⭕', 'Sin responder', sinResponder,
+                        AppColors.neutral),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Bloque "¿Habrías aprobado la oposición?" ──
+        ComparativaCorte(
+          correctas: correctas,
+          incorrectas: incorrectas,
+          total: total,
+        ),
+        const SizedBox(height: 20),
+
+        // ── Encabezado de la revisión de respuestas ──
+        Text(
+          'Revisión de respuestas',
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildStatChip(
+      String icono, String label, int valor, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Text(icono, style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 4),
+            Text(
+              '$valor',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

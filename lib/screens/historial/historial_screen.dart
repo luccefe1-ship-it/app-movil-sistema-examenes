@@ -360,6 +360,10 @@ class DetalleTestHistorialScreen extends StatelessWidget {
       nombreTest: nombre,
       preguntas: preguntas,
       respuestasUsuario: respuestasUsuario,
+      correctas: (testData['correctas'] as num?)?.toInt(),
+      incorrectas: (testData['incorrectas'] as num?)?.toInt(),
+      total: (testData['total'] as num?)?.toInt(),
+      sinResponder: (testData['sinResponder'] as num?)?.toInt(),
     );
   }
 }
