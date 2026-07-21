@@ -33,10 +33,9 @@ class MyApp extends StatelessWidget {
         title: 'Sistema de Exámenes',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.dark(
+          colorScheme: const ColorScheme.dark(
             primary: AppColors.primary,
             surface: AppColors.surface,
-            background: AppColors.background,
           ),
           scaffoldBackgroundColor: AppColors.background,
           cardColor: AppColors.cardBackground,

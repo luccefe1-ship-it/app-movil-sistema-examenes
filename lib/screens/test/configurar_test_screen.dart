@@ -22,9 +22,9 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   int _numeroPreguntas = 25;
   bool _isLoading = true;
   bool _isStarting = false;
-  int _preguntasFalladas = 0;
   bool _soloNuevas = false;
   bool _soloFalladas = false;
+  bool _soloOficiales = false;
   int? _disponiblesConFiltro; // preguntas que quedan tras aplicar el filtro
   bool _calculandoDisponibles = false;
   int _peticionDisponibles = 0; // descarta cálculos obsoletos
@@ -52,16 +52,9 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   Future<void> _cargarDatos() async {
     final authService = context.read<AuthService>();
     final temasService = context.read<TemasService>();
-    final testService = context.read<TestService>();
 
     if (authService.userId != null) {
       await temasService.cargarTemas(authService.userId!);
-      // Contar las falladas reales (filtradas contra temas cargados)
-      final falladasReales = await testService.getPreguntasFalladas(
-        authService.userId!,
-        temasService.todosTemas,
-      );
-      _preguntasFalladas = falladasReales.length;
     }
 
     setState(() => _isLoading = false);
@@ -69,8 +62,8 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
   void _toggleTema(String temaId, TemasService temasService) {
     setState(() {
-      if (_temasSeleccionados.containsAll(
-          temasService.getSubtemas(temaId).map((s) => s.id)) ||
+      if (_temasSeleccionados
+              .containsAll(temasService.getSubtemas(temaId).map((s) => s.id)) ||
           _temasSeleccionados.contains(temaId)) {
         _temasSeleccionados.remove(temaId);
         final subtemas = temasService.getSubtemas(temaId);
@@ -135,46 +128,6 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
     _recalcularDisponibles();
   }
 
-  Future<void> _practicarFalladas() async {
-    setState(() => _isStarting = true);
-
-    final authService = context.read<AuthService>();
-    final testService = context.read<TestService>();
-    final temasService = context.read<TemasService>();
-
-    if (authService.userId == null) {
-      setState(() => _isStarting = false);
-      return;
-    }
-
-    final falladas = await testService.getPreguntasFalladas(
-      authService.userId!,
-      temasService.todosTemas,
-    );
-
-    setState(() => _isStarting = false);
-
-    if (!mounted) return;
-
-    if (falladas.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No tienes preguntas falladas pendientes')),
-      );
-      return;
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => RealizarTestScreen(
-          nombreTest: 'Repaso de Fallos',
-          preguntas: falladas,
-          temasIds: const [],
-          esModoFalladas: true,
-        ),
-      ),
-    );
-  }
-
   Future<void> _iniciarTest() async {
     final nombre = _nombreController.text.trim();
     if (nombre.isEmpty) {
@@ -211,37 +164,40 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
     if (todasPreguntas.isEmpty) {
       setState(() => _isStarting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay preguntas verificadas en la selección')),
+        const SnackBar(
+            content: Text('No hay preguntas verificadas en la selección')),
       );
       return;
     }
 
-    // NUEVO: aplicar filtro "solo nuevas" / "solo falladas" (excluyentes)
-    List<PreguntaEmbebida> pool = todasPreguntas;
+    // Filtros: oficiales (independiente) + nuevas/falladas (excluyentes)
+    List<PreguntaEmbebida> pool = _aplicarOficiales(todasPreguntas);
     final authService = context.read<AuthService>();
+
     if (authService.userId != null && (_soloNuevas || _soloFalladas)) {
       pool = _soloNuevas
-          ? await testService.filtrarSoloNuevas(
-              todasPreguntas, authService.userId!)
-          : await testService.filtrarSoloFalladas(
-              todasPreguntas, authService.userId!);
+          ? await testService.filtrarSoloNuevas(pool, authService.userId!)
+          : await testService.filtrarSoloFalladas(pool, authService.userId!);
 
       if (!mounted) return;
+    }
 
-      if (pool.isEmpty) {
-        setState(() => _isStarting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_soloNuevas
-                ? '¡Ya has hecho todas las preguntas de estos temas! No quedan preguntas nuevas.'
-                : 'No tienes preguntas falladas registradas en estos temas.'),
-          ),
-        );
-        return;
-      }
+    if (_filtroActivo && pool.isEmpty) {
+      setState(() => _isStarting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_mensajeSinPreguntas())),
+      );
+      return;
     }
 
     final preguntas = testService.getRandomPreguntas(pool, _numeroPreguntas);
+
+    // Solo en modo "falladas": nº de veces que se ha fallado cada pregunta
+    Map<String, int>? conteoFallos;
+    if (_soloFalladas && authService.userId != null) {
+      conteoFallos =
+          await testService.conteoFallosPara(preguntas, authService.userId!);
+    }
 
     if (!mounted) return;
     setState(() => _isStarting = false);
@@ -252,6 +208,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
           nombreTest: nombre,
           preguntas: preguntas,
           temasIds: _temasSeleccionados.toList(),
+          conteoFallos: conteoFallos,
         ),
       ),
     );
@@ -264,7 +221,8 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Configurar Test', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text('Configurar Test',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -276,49 +234,28 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Botones rápidos
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _repetirUltimosParametros,
-                          icon: const Icon(Icons.replay, size: 18),
-                          label: Text('Repetir últimos', style: GoogleFonts.inter(fontSize: 13)),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: const BorderSide(color: AppColors.primary),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _preguntasFalladas > 0 ? _practicarFalladas : null,
-                          icon: const Icon(Icons.error_outline, size: 18),
-                          label: Text(
-                            _preguntasFalladas > 0
-                                ? 'Falladas ($_preguntasFalladas)'
-                                : 'Sin falladas',
-                            style: GoogleFonts.inter(fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            side: BorderSide(
-                              color: _preguntasFalladas > 0 ? AppColors.error : Colors.grey[700]!,
-                            ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                    ],
+                  // Botón rápido
+                  OutlinedButton.icon(
+                    onPressed: _repetirUltimosParametros,
+                    icon: const Icon(Icons.replay, size: 18),
+                    label: Text('Repetir últimos',
+                        style: GoogleFonts.inter(fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Nombre
-                  Text('Nombre del test', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  Text('Nombre del test',
+                      style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _nombreController,
@@ -329,17 +266,24 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                     ),
                     decoration: InputDecoration(
                       hintText: 'Ej: Test Tema 1 y 2',
-                      hintStyle: GoogleFonts.inter(color: AppColors.textSecondary),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintStyle:
+                          GoogleFonts.inter(color: AppColors.textSecondary),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: AppColors.cardBackground,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   // Número de preguntas
-                  Text('Número de preguntas', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  Text('Número de preguntas',
+                      style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 10,
@@ -351,7 +295,9 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
-                            color: isSelected ? Colors.white : AppColors.textPrimary,
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.textPrimary,
                           ),
                         ),
                         selected: isSelected,
@@ -364,10 +310,15 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                   const SizedBox(height: 24),
 
                   // Temas
-                  Text('Seleccionar temas', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  Text('Seleccionar temas',
+                      style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary)),
                   const SizedBox(height: 8),
 
-                  ...temasService.temasPrincipales.map((tema) => _buildTemaCard(tema, temasService)),
+                  ...temasService.temasPrincipales
+                      .map((tema) => _buildTemaCard(tema, temasService)),
 
                   const SizedBox(height: 24),
 
@@ -393,12 +344,21 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       elevation: 2,
                     ),
                     child: _isStarting
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-                        : Text('Iniciar Test', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white)))
+                        : Text('Iniciar Test',
+                            style: GoogleFonts.inter(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -408,13 +368,15 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   }
 
   int _contarPreguntasDisponibles(TemasService temasService) {
-    return temasService.getPreguntasVerificadas(_temasSeleccionados.toList()).length;
+    return _aplicarOficiales(
+      temasService.getPreguntasVerificadas(_temasSeleccionados.toList()),
+    ).length;
   }
 
   /// Recalcula cuántas preguntas quedan tras aplicar el filtro activo.
   /// Sin filtro (o sin temas) no hay número filtrado que mostrar.
   Future<void> _recalcularDisponibles() async {
-    if ((!_soloNuevas && !_soloFalladas) || _temasSeleccionados.isEmpty) {
+    if (!_filtroActivo || _temasSeleccionados.isEmpty) {
       if (mounted) {
         setState(() {
           _disponiblesConFiltro = null;
@@ -435,17 +397,19 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
     final miPeticion = ++_peticionDisponibles;
     setState(() => _calculandoDisponibles = true);
 
-    final pool =
-        temasService.getPreguntasVerificadas(_temasSeleccionados.toList());
+    var pool = _aplicarOficiales(
+        temasService.getPreguntasVerificadas(_temasSeleccionados.toList()));
 
-    final filtradas = _soloNuevas
-        ? await testService.filtrarSoloNuevas(pool, authService.userId!)
-        : await testService.filtrarSoloFalladas(pool, authService.userId!);
+    if (_soloNuevas || _soloFalladas) {
+      pool = _soloNuevas
+          ? await testService.filtrarSoloNuevas(pool, authService.userId!)
+          : await testService.filtrarSoloFalladas(pool, authService.userId!);
+    }
 
     if (!mounted || miPeticion != _peticionDisponibles) return;
 
     setState(() {
-      _disponiblesConFiltro = filtradas.length;
+      _disponiblesConFiltro = pool.length;
       _calculandoDisponibles = false;
     });
   }
@@ -457,7 +421,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   /// usan las tarjetas para mostrar el número correcto.
   Future<void> _recalcularConteosPorTema() async {
     // Sin filtro: no hay conteo especial, las tarjetas vuelven al total.
-    if (!_soloNuevas && !_soloFalladas) {
+    if (!_filtroActivo) {
       if (mounted) setState(() => _conteoFiltradoPorTema = {});
       return;
     }
@@ -470,8 +434,9 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
     setState(() => _cargandoConteos = true);
 
-    // Cargar las claves del historial una sola vez y cachearlas.
-    if (_clavesVistos == null || _clavesFallados == null) {
+    // El historial solo hace falta si hay filtro de nuevas/falladas.
+    if ((_soloNuevas || _soloFalladas) &&
+        (_clavesVistos == null || _clavesFallados == null)) {
       final historial =
           await testService.cargarClavesHistorial(authService.userId!);
       _clavesVistos = historial['vistos'] ?? <String>{};
@@ -480,7 +445,10 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
 
     if (!mounted) return;
 
-    final claves = _soloNuevas ? _clavesVistos! : _clavesFallados!;
+    final claves = _soloNuevas
+        ? (_clavesVistos ?? <String>{})
+        : (_clavesFallados ?? <String>{});
+    final usaHistorial = _soloNuevas || _soloFalladas;
     final esFalladas = _soloFalladas;
 
     final Map<String, int> conteos = {};
@@ -488,9 +456,13 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
       int n = 0;
       for (final p in tema.preguntas) {
         if (!p.verificada) continue;
-        final coincide = testService.coincideEnHistorial(p, claves);
-        // Falladas: cuenta si coincide. Nuevas: cuenta si NO coincide.
-        if (esFalladas ? coincide : !coincide) n++;
+        if (_soloOficiales && !p.esOficial) continue;
+        if (usaHistorial) {
+          final coincide = testService.coincideEnHistorial(p, claves);
+          // Falladas: cuenta si coincide. Nuevas: cuenta si NO coincide.
+          if (esFalladas ? !coincide : coincide) continue;
+        }
+        n++;
       }
       conteos[tema.id] = n;
     }
@@ -515,7 +487,7 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   /// Texto de preguntas disponibles. Reacciona al filtro seleccionado.
   Widget _buildDisponiblesText(TemasService temasService) {
     // Sin filtro: total de verificadas de los temas elegidos.
-    if (!_soloNuevas && !_soloFalladas) {
+    if (!_filtroActivo) {
       return Text(
         '${_contarPreguntasDisponibles(temasService)} preguntas verificadas disponibles',
         style: GoogleFonts.inter(
@@ -539,22 +511,20 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
           const SizedBox(width: 8),
           Text(
             'Calculando preguntas disponibles…',
-            style: GoogleFonts.inter(
-                fontSize: 14, color: AppColors.textSecondary),
+            style:
+                GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary),
           ),
         ],
       );
     }
 
     final disp = _disponiblesConFiltro!;
-    final color = _soloNuevas ? AppColors.success : AppColors.error;
-    final etiqueta = _soloNuevas ? 'nuevas' : 'falladas';
+    final color = _colorFiltro;
+    final etiqueta = _etiquetaFiltro;
 
     if (disp == 0) {
       return Text(
-        _soloNuevas
-            ? 'No quedan preguntas nuevas en estos temas'
-            : 'No tienes preguntas falladas en estos temas',
+        _mensajeSinPreguntas(),
         style: GoogleFonts.inter(
             fontSize: 14, color: color, fontWeight: FontWeight.w600),
         textAlign: TextAlign.center,
@@ -584,6 +554,45 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
     );
   }
 
+  bool get _filtroActivo => _soloNuevas || _soloFalladas || _soloOficiales;
+
+  /// Etiqueta descriptiva del filtro combinado activo ("oficiales falladas").
+  String get _etiquetaFiltro {
+    final partes = <String>[];
+    if (_soloOficiales) partes.add('oficiales');
+    if (_soloNuevas) partes.add('nuevas');
+    if (_soloFalladas) partes.add('falladas');
+    return partes.join(' ');
+  }
+
+  /// Color dominante del filtro activo.
+  Color get _colorFiltro {
+    if (_soloNuevas) return AppColors.success;
+    if (_soloFalladas) return AppColors.error;
+    return AppColors.oficial;
+  }
+
+  /// Aplica el filtro de oficiales en memoria (no necesita Firestore).
+  List<PreguntaEmbebida> _aplicarOficiales(List<PreguntaEmbebida> pool) {
+    if (!_soloOficiales) return pool;
+    return pool.where((p) => p.esOficial).toList();
+  }
+
+  /// Mensaje cuando la combinación de filtros no deja ninguna pregunta.
+  String _mensajeSinPreguntas() {
+    if (_soloOficiales && !_soloNuevas && !_soloFalladas) {
+      return 'No hay preguntas marcadas como oficiales en estos temas.';
+    }
+    if (_soloNuevas) {
+      return _soloOficiales
+          ? 'No quedan preguntas oficiales nuevas en estos temas.'
+          : '¡Ya has hecho todas las preguntas de estos temas! No quedan preguntas nuevas.';
+    }
+    return _soloOficiales
+        ? 'No tienes preguntas oficiales falladas en estos temas.'
+        : 'No tienes preguntas falladas registradas en estos temas.';
+  }
+
   Widget _buildFiltrosCard() {
     return Card(
       color: AppColors.cardBackground,
@@ -591,6 +600,32 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
+          CheckboxListTile(
+            value: _soloOficiales,
+            activeColor: AppColors.oficial,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text(
+              '📋 Solo preguntas oficiales',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            subtitle: Text(
+              'Las marcadas como oficiales de examen en la plataforma',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            onChanged: (v) {
+              setState(() => _soloOficiales = v ?? false);
+              _recalcularDisponibles();
+              _recalcularConteosPorTema();
+            },
+          ),
+          const Divider(height: 1),
           CheckboxListTile(
             value: _soloNuevas,
             activeColor: AppColors.success,
@@ -656,44 +691,38 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
   /// Subtítulo de la tarjeta de tema: número total, o número filtrado
   /// (nuevas/falladas) cuando hay un filtro activo.
   Widget _buildContadorTema(Tema tema, TemasService temasService, int total) {
-    final filtroActivo = _soloNuevas || _soloFalladas;
-    if (!filtroActivo) {
+    if (!_filtroActivo) {
       return Text('$total preguntas',
-          style: GoogleFonts.inter(
-              fontSize: 12, color: AppColors.textSecondary));
+          style:
+              GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary));
     }
     if (_cargandoConteos && _conteoFiltradoPorTema.isEmpty) {
       return Text('Calculando…',
-          style: GoogleFonts.inter(
-              fontSize: 12, color: AppColors.textSecondary));
+          style:
+              GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary));
     }
     final n = _conteoTemaConSubtemas(tema, temasService);
-    final color = _soloNuevas ? AppColors.success : AppColors.error;
-    final etiqueta = _soloNuevas ? 'nuevas' : 'falladas';
-    return Text('$n $etiqueta',
+    return Text('$n $_etiquetaFiltro',
         style: GoogleFonts.inter(
-            fontSize: 12, color: color, fontWeight: FontWeight.w600));
+            fontSize: 12, color: _colorFiltro, fontWeight: FontWeight.w600));
   }
 
   /// Subtítulo de la fila de subtema: número total, o número filtrado.
   Widget _buildContadorSubtema(Tema subtema) {
-    final filtroActivo = _soloNuevas || _soloFalladas;
-    if (!filtroActivo) {
+    if (!_filtroActivo) {
       return Text('${subtema.numPreguntasVerificadas} preguntas',
-          style: GoogleFonts.inter(
-              fontSize: 11, color: AppColors.textSecondary));
+          style:
+              GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary));
     }
     if (_cargandoConteos && _conteoFiltradoPorTema.isEmpty) {
       return Text('Calculando…',
-          style: GoogleFonts.inter(
-              fontSize: 11, color: AppColors.textSecondary));
+          style:
+              GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary));
     }
     final n = _conteoFiltradoPorTema[subtema.id] ?? 0;
-    final color = _soloNuevas ? AppColors.success : AppColors.error;
-    final etiqueta = _soloNuevas ? 'nuevas' : 'falladas';
-    return Text('$n $etiqueta',
+    return Text('$n $_etiquetaFiltro',
         style: GoogleFonts.inter(
-            fontSize: 11, color: color, fontWeight: FontWeight.w600));
+            fontSize: 11, color: _colorFiltro, fontWeight: FontWeight.w600));
   }
 
   Widget _buildTemaCard(Tema tema, TemasService temasService) {
@@ -709,7 +738,9 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: isSelected ? AppColors.primary : Colors.transparent, width: 2),
+        side: BorderSide(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            width: 2),
       ),
       child: Column(
         children: [
@@ -726,7 +757,10 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(tema.nombre, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                      Text(tema.nombre,
+                          style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary)),
                       _buildContadorTema(tema, temasService, totalPreguntas),
                     ],
                   ),
@@ -742,16 +776,18 @@ class _ConfigurarTestScreenState extends State<ConfigurarTestScreen> {
                 ),
             ],
           ),
-
           if (isExpanded && subtemas.isNotEmpty) ...[
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.only(left: 16, right: 8, bottom: 8, top: 4),
+              padding:
+                  const EdgeInsets.only(left: 16, right: 8, bottom: 8, top: 4),
               child: Column(
                 children: subtemas.map((subtema) {
                   final subSelected = _temasSeleccionados.contains(subtema.id);
                   return CheckboxListTile(
-                    title: Text(subtema.nombre, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary)),
+                    title: Text(subtema.nombre,
+                        style: GoogleFonts.inter(
+                            fontSize: 14, color: AppColors.textPrimary)),
                     subtitle: _buildContadorSubtema(subtema),
                     value: subSelected,
                     activeColor: AppColors.primaryLight,

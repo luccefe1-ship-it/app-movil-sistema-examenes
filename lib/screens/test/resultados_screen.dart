@@ -101,7 +101,8 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Resultados', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text('Resultados',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -113,17 +114,22 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
           children: [
             Text(
               widget.nombreTest,
-              style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: GoogleFonts.inter(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
 
             // Puntuación grande
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               elevation: 3,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                 child: Column(
                   children: [
                     Text(
@@ -131,20 +137,28 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                       style: GoogleFonts.inter(
                         fontSize: 72,
                         fontWeight: FontWeight.bold,
-                        color: r['puntuacion'] >= 50 ? AppColors.success : AppColors.error,
+                        color: r['puntuacion'] >= 50
+                            ? AppColors.success
+                            : AppColors.error,
                       ),
                     ),
-                    Text('sobre 100', style: GoogleFonts.inter(fontSize: 18, color: AppColors.textSecondary)),
+                    Text('sobre 100',
+                        style: GoogleFonts.inter(
+                            fontSize: 18, color: AppColors.textSecondary)),
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         'Nota examen: ${r['notaExamen']} / 60',
-                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primary),
+                        style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary),
                       ),
                     ),
                   ],
@@ -155,22 +169,33 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
 
             // Estadísticas
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    _buildStatRow('Total preguntas', '${r['total']}', AppColors.textPrimary),
+                    _buildStatRow('Total preguntas', '${r['total']}',
+                        AppColors.textPrimary),
                     const Divider(),
-                    _buildStatRow('Correctas', '${r['correctas']}', AppColors.success),
+                    _buildStatRow(
+                        'Correctas', '${r['correctas']}', AppColors.success),
                     const Divider(),
-                    _buildStatRow('Incorrectas', '${r['incorrectas']}', AppColors.error),
+                    _buildStatRow(
+                        'Incorrectas', '${r['incorrectas']}', AppColors.error),
                     const Divider(),
-                    _buildStatRow('En blanco', '${r['sinResponder']}', AppColors.neutral),
+                    _buildStatRow(
+                        'En blanco', '${r['sinResponder']}', AppColors.neutral),
                     const Divider(),
-                    _buildStatRow('Penalización', '-${(r['penalizacion'] as double).toStringAsFixed(2)}', AppColors.error),
+                    _buildStatRow(
+                        'Penalización',
+                        '-${(r['penalizacion'] as double).toStringAsFixed(2)}',
+                        AppColors.error),
                     const Divider(),
-                    _buildStatRow('Aciertos netos', (r['aciertosNetos'] as double).toStringAsFixed(2), AppColors.primary),
+                    _buildStatRow(
+                        'Aciertos netos',
+                        (r['aciertosNetos'] as double).toStringAsFixed(2),
+                        AppColors.primary),
                   ],
                 ),
               ),
@@ -182,9 +207,12 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.cloud_done, size: 16, color: AppColors.success),
+                    const Icon(Icons.cloud_done,
+                        size: 16, color: AppColors.success),
                     const SizedBox(width: 6),
-                    Text('Resultado guardado', style: GoogleFonts.inter(fontSize: 12, color: AppColors.success)),
+                    Text('Resultado guardado',
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: AppColors.success)),
                   ],
                 ),
               ),
@@ -197,12 +225,14 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _repetirFallos,
                     icon: const Icon(Icons.replay, size: 18),
-                    label: Text('Repetir Fallos', style: GoogleFonts.inter(fontSize: 13)),
+                    label: Text('Repetir Fallos',
+                        style: GoogleFonts.inter(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ),
@@ -211,12 +241,14 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _repetirTodo,
                     icon: const Icon(Icons.refresh, size: 18),
-                    label: Text('Repetir Todo', style: GoogleFonts.inter(fontSize: 13)),
+                    label: Text('Repetir Todo',
+                        style: GoogleFonts.inter(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: const BorderSide(color: AppColors.primary),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ),
@@ -239,12 +271,14 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                   );
                 },
                 icon: const Icon(Icons.list_alt),
-                label: Text('Ver Detalle del Test', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                label: Text('Ver Detalle del Test',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),
@@ -253,8 +287,11 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
             SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-                child: Text('Volver al Menú', style: GoogleFonts.inter(fontSize: 15, color: AppColors.textSecondary)),
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
+                child: Text('Volver al Menú',
+                    style: GoogleFonts.inter(
+                        fontSize: 15, color: AppColors.textSecondary)),
               ),
             ),
             const SizedBox(height: 20),
@@ -270,8 +307,14 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
-          Text(value, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: valueColor)),
+          Text(label,
+              style: GoogleFonts.inter(
+                  fontSize: 14, color: AppColors.textSecondary)),
+          Text(value,
+              style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: valueColor)),
         ],
       ),
     );

@@ -145,9 +145,9 @@ class _ExplicacionModalState extends State<ExplicacionModal>
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
         children: [
@@ -228,10 +228,12 @@ class _ExplicacionModalState extends State<ExplicacionModal>
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           child: TextField(
             controller: _searchController,
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary),
+            style:
+                GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Buscar en el documento...',
-              hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+              hintStyle: GoogleFonts.inter(
+                  fontSize: 13, color: AppColors.textSecondary),
               prefixIcon: const Icon(Icons.search, size: 18),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -284,8 +286,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
                 label: Text('Borrar',
                     style: GoogleFonts.inter(fontSize: 11, color: Colors.red)),
                 style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
               ),
             ]),
           ),
@@ -304,8 +306,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
         ),
 
         // Barra inferior: subrayar
-        if (!_tieneSubrayados)
-          _buildBarraSubrayar(),
+        if (!_tieneSubrayados) _buildBarraSubrayar(),
       ],
     );
   }
@@ -378,7 +379,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
         border: Border(top: BorderSide(color: Colors.grey.shade800)),
       ),
       child: Row(children: [
-        Icon(Icons.touch_app_outlined,
+        const Icon(Icons.touch_app_outlined,
             size: 14, color: AppColors.textSecondary),
         const SizedBox(width: 6),
         Expanded(
@@ -386,8 +387,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
             tieneSeleccion
                 ? 'Texto seleccionado — pulsa para subrayar'
                 : 'Mantén pulsado y selecciona texto para subrayar',
-            style: GoogleFonts.inter(
-                fontSize: 11, color: AppColors.textSecondary),
+            style:
+                GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary),
           ),
         ),
         if (tieneSeleccion)
@@ -405,8 +406,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFBBF24),
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     shape: RoundedRectangleBorder(
@@ -450,9 +451,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
               content: Text('✅ Subrayado guardado'),
               backgroundColor: Colors.green),
         );
-        WidgetsBinding.instance.addPostFrameCallback(
-            (_) => Future.delayed(const Duration(milliseconds: 300),
-                _scrollToFirstHighlight));
+        WidgetsBinding.instance.addPostFrameCallback((_) => Future.delayed(
+            const Duration(milliseconds: 300), _scrollToFirstHighlight));
       }
     } catch (e) {
       if (mounted) {
@@ -479,8 +479,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
               child: const Text('Cancelar')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Borrar',
-                  style: TextStyle(color: Colors.red))),
+              child: const Text('Borrar', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -515,7 +514,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
 
     for (final match in regex.allMatches(textoFiltrado)) {
       if (match.start > lastEnd) {
-        final before = _stripHtml(textoFiltrado.substring(lastEnd, match.start));
+        final before =
+            _stripHtml(textoFiltrado.substring(lastEnd, match.start));
         if (before.trim().isNotEmpty) {
           widgets.add(_richTextWithSearch(before));
         }
@@ -581,7 +581,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.smart_toy_outlined,
+            const Icon(Icons.smart_toy_outlined,
                 size: 48, color: AppColors.neutral),
             const SizedBox(height: 12),
             Text('No hay explicación IA para esta pregunta.',
@@ -595,8 +595,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
                     onPressed: _generarExplicacionIA,
                     icon: const Text('✨', style: TextStyle(fontSize: 16)),
                     label: Text('Generar con IA',
-                        style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600)),
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -622,14 +621,12 @@ class _ExplicacionModalState extends State<ExplicacionModal>
               maxLines: null,
               expands: true,
               style: GoogleFonts.inter(
-                  fontSize: 14,
-                  height: 1.7,
-                  color: AppColors.textPrimary),
+                  fontSize: 14, height: 1.7, color: AppColors.textPrimary),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -648,9 +645,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
           padding: const EdgeInsets.all(16),
           child: SelectableText(textoLimpio,
               style: GoogleFonts.inter(
-                  fontSize: 14,
-                  height: 1.7,
-                  color: AppColors.textPrimary)),
+                  fontSize: 14, height: 1.7, color: AppColors.textPrimary)),
         ),
       ),
       _buildBarraAccionesIA(editando: false),
@@ -710,8 +705,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
                           fontSize: 12, fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      side:
-                          const BorderSide(color: AppColors.primary)),
+                      side: const BorderSide(color: AppColors.primary)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -720,18 +714,14 @@ class _ExplicacionModalState extends State<ExplicacionModal>
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _guardadoIA ? null : _guardarIA,
-                    icon: Icon(
-                        _guardadoIA ? Icons.check : Icons.save,
-                        size: 14),
-                    label: Text(
-                        _guardadoIA ? 'Guardada' : 'Guardar',
+                    icon:
+                        Icon(_guardadoIA ? Icons.check : Icons.save, size: 14),
+                    label: Text(_guardadoIA ? 'Guardada' : 'Guardar',
                         style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
+                            fontSize: 12, fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _guardadoIA
-                          ? Colors.grey
-                          : AppColors.primary,
+                      backgroundColor:
+                          _guardadoIA ? Colors.grey : AppColors.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
@@ -815,8 +805,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
               child: const Text('Cancelar')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Borrar',
-                  style: TextStyle(color: Colors.red))),
+              child: const Text('Borrar', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -846,13 +835,14 @@ class _ExplicacionModalState extends State<ExplicacionModal>
     setState(() => _generandoIA = true);
     try {
       final apiKey = await widget.testService.obtenerClaudeApiKey();
-      if (apiKey == null)
+      if (apiKey == null) {
         throw Exception('No se encontró la configuración de IA');
+      }
 
-      final opciones =
-          widget.pregunta.opciones.map((o) => '${o.letra}) ${o.texto}').join('\n');
-      final correcta = widget.pregunta.opciones.firstWhere(
-          (o) => o.esCorrecta,
+      final opciones = widget.pregunta.opciones
+          .map((o) => '${o.letra}) ${o.texto}')
+          .join('\n');
+      final correcta = widget.pregunta.opciones.firstWhere((o) => o.esCorrecta,
           orElse: () => widget.pregunta.opciones.first);
       final respUsuario = widget.respuestaUsuario != null
           ? widget.pregunta.opciones.firstWhere(
@@ -888,8 +878,9 @@ class _ExplicacionModalState extends State<ExplicacionModal>
         }),
       );
 
-      if (response.statusCode != 200)
+      if (response.statusCode != 200) {
         throw Exception('Error API: ${response.statusCode}');
+      }
       final data = jsonDecode(response.body);
       final texto = data['content'][0]['text'] as String;
 
@@ -918,8 +909,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const CircularProgressIndicator(color: AppColors.primary),
           const SizedBox(height: 12),
-          Text(msg,
-              style: GoogleFonts.inter(color: AppColors.textSecondary)),
+          Text(msg, style: GoogleFonts.inter(color: AppColors.textSecondary)),
         ]),
       );
 

@@ -70,8 +70,8 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     for (final t in conFecha) {
       try {
         final fecha = t['fechaCreacion'].toDate() as DateTime;
-        final semana = fecha.year * 100 +
-            ((fecha.month - 1) * 30 + fecha.day) ~/ 7;
+        final semana =
+            fecha.year * 100 + ((fecha.month - 1) * 30 + fecha.day) ~/ 7;
         final pts =
             ((t['puntuacion'] ?? t['porcentaje'] ?? 0) as num).toDouble();
         porSemana.putIfAbsent(semana, () => []).add(pts);
@@ -95,12 +95,10 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     final Map<String, _TemaStat> temaMap = {};
 
     for (final test in _historial) {
-      final detalles =
-          test['detalleRespuestas'] as List<dynamic>? ?? [];
+      final detalles = test['detalleRespuestas'] as List<dynamic>? ?? [];
       for (final d in detalles) {
         final det = d as Map<String, dynamic>;
-        final temaNombre =
-            (det['temaNombre'] as String?)?.trim() ?? '';
+        final temaNombre = (det['temaNombre'] as String?)?.trim() ?? '';
         if (temaNombre.isEmpty) continue;
 
         final estado = det['estado'] as String? ?? '';
@@ -114,8 +112,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
       }
     }
 
-    _temasOrdenados = temaMap.values
-        .toList()
+    _temasOrdenados = temaMap.values.toList()
       ..sort((a, b) => a.porcentajeFallo.compareTo(b.porcentajeFallo));
   }
 
@@ -125,8 +122,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text('Estadísticas',
-            style:
-                GoogleFonts.inter(fontWeight: FontWeight.bold)),
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -161,8 +157,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     final color = _notaMedia >= 50 ? AppColors.success : AppColors.error;
     return Card(
       color: AppColors.cardBackground,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Row(
@@ -173,28 +168,25 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                 children: [
                   Text('Nota media global',
                       style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: AppColors.textSecondary)),
+                          fontSize: 14, color: AppColors.textSecondary)),
                   const SizedBox(height: 4),
                   Text('${_notaMedia.toStringAsFixed(1)} pts',
                       style: GoogleFonts.inter(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
                           color: color)),
-                  Text('sobre ${_historial.length} test${_historial.length != 1 ? 's' : ''} realizados',
+                  Text(
+                      'sobre ${_historial.length} test${_historial.length != 1 ? 's' : ''} realizados',
                       style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.textSecondary)),
+                          fontSize: 12, color: AppColors.textSecondary)),
                 ],
               ),
             ),
             CircleAvatar(
               radius: 32,
-              backgroundColor: color.withOpacity(0.15),
+              backgroundColor: color.withValues(alpha: 0.15),
               child: Icon(
-                _notaMedia >= 50
-                    ? Icons.emoji_events
-                    : Icons.trending_up,
+                _notaMedia >= 50 ? Icons.emoji_events : Icons.trending_up,
                 color: color,
                 size: 32,
               ),
@@ -211,8 +203,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
 
     return Card(
       color: AppColors.cardBackground,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 20, 20, 12),
         child: Column(
@@ -237,7 +228,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                     drawVerticalLine: false,
                     horizontalInterval: 25,
                     getDrawingHorizontalLine: (_) => FlLine(
-                      color: Colors.grey.withOpacity(0.15),
+                      color: Colors.grey.withValues(alpha: 0.15),
                       strokeWidth: 1,
                     ),
                   ),
@@ -251,8 +242,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                         getTitlesWidget: (v, _) => Text(
                           '${v.toInt()}',
                           style: GoogleFonts.inter(
-                              fontSize: 10,
-                              color: AppColors.textSecondary),
+                              fontSize: 10, color: AppColors.textSecondary),
                         ),
                       ),
                     ),
@@ -269,8 +259,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                             child: Text(
                               _fechasEje[i],
                               style: GoogleFonts.inter(
-                                  fontSize: 9,
-                                  color: AppColors.textSecondary),
+                                  fontSize: 9, color: AppColors.textSecondary),
                             ),
                           );
                         },
@@ -290,8 +279,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                       barWidth: 2.5,
                       dotData: FlDotData(
                         show: _spots.length <= 20,
-                        getDotPainter: (_, __, ___, ____) =>
-                            FlDotCirclePainter(
+                        getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
                           radius: 3,
                           color: AppColors.primary,
                           strokeColor: Colors.white,
@@ -300,17 +288,17 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                       ),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: AppColors.primary.withOpacity(0.08),
+                        color: AppColors.primary.withValues(alpha: 0.08),
                       ),
                     ),
                     // Línea de referencia en 50
                     LineChartBarData(
                       spots: [
-                        FlSpot(0, 50),
+                        const FlSpot(0, 50),
                         FlSpot((_spots.length - 1).toDouble(), 50),
                       ],
                       isCurved: false,
-                      color: AppColors.neutral.withOpacity(0.4),
+                      color: AppColors.neutral.withValues(alpha: 0.4),
                       barWidth: 1,
                       dashArray: [4, 4],
                       dotData: const FlDotData(show: false),
@@ -335,8 +323,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
 
     return Card(
       color: AppColors.cardBackground,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -357,19 +344,15 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
             Text(
               analisis,
               style: GoogleFonts.inter(
-                  fontSize: 13.5,
-                  height: 1.7,
-                  color: AppColors.textSecondary),
+                  fontSize: 13.5, height: 1.7, color: AppColors.textSecondary),
             ),
             if (peores.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _buildTemasList(
-                  '🔴 Temas a reforzar', peores, AppColors.error),
+              _buildTemasList('🔴 Temas a reforzar', peores, AppColors.error),
             ],
             if (mejores.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _buildTemasList(
-                  '🟢 Temas dominados', mejores, AppColors.success),
+              _buildTemasList('🟢 Temas dominados', mejores, AppColors.success),
             ],
           ],
         ),
@@ -377,8 +360,7 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     );
   }
 
-  Widget _buildTemasList(
-      String titulo, List<_TemaStat> temas, Color color) {
+  Widget _buildTemasList(String titulo, List<_TemaStat> temas, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -401,10 +383,10 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
+                      color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -422,16 +404,15 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     );
   }
 
-String _generarAnalisis(
-      List<_TemaStat> mejores, List<_TemaStat> peores) {
+  String _generarAnalisis(List<_TemaStat> mejores, List<_TemaStat> peores) {
     final totalTests = _historial.length;
     final nota = _notaMedia;
     final tendencia = _calcularTendencia();
-    int _seed = DateTime.now().millisecondsSinceEpoch;
+    int seed = DateTime.now().millisecondsSinceEpoch;
 
     String pick(List<String> opciones) {
-      _seed = (_seed * 1664525 + 1013904223) & 0xFFFFFFFF;
-      return opciones[_seed.abs() % opciones.length];
+      seed = (seed * 1664525 + 1013904223) & 0xFFFFFFFF;
+      return opciones[seed.abs() % opciones.length];
     }
 
     String texto = '';
@@ -592,15 +573,13 @@ String _generarAnalisis(
 
     return texto;
   }
+
   double _calcularTendencia() {
     if (_spots.length < 4) return 0;
-    final ultimos =
-        _spots.sublist(_spots.length - 4).map((s) => s.y).toList();
+    final ultimos = _spots.sublist(_spots.length - 4).map((s) => s.y).toList();
     final primeros = _spots.sublist(0, 4).map((s) => s.y).toList();
-    final mediaUltimos =
-        ultimos.reduce((a, b) => a + b) / ultimos.length;
-    final mediaPrimeros =
-        primeros.reduce((a, b) => a + b) / primeros.length;
+    final mediaUltimos = ultimos.reduce((a, b) => a + b) / ultimos.length;
+    final mediaPrimeros = primeros.reduce((a, b) => a + b) / primeros.length;
     return mediaUltimos - mediaPrimeros;
   }
 }
@@ -613,8 +592,6 @@ class _TemaStat {
 
   _TemaStat(this.nombre);
 
-  double get porcentajeFallo =>
-      total == 0 ? 0 : (incorrectas / total) * 100;
-  double get porcentajeAcierto =>
-      total == 0 ? 0 : (correctas / total) * 100;
+  double get porcentajeFallo => total == 0 ? 0 : (incorrectas / total) * 100;
+  double get porcentajeAcierto => total == 0 ? 0 : (correctas / total) * 100;
 }

@@ -66,8 +66,7 @@ class DetalleTestScreen extends StatelessWidget {
     return Card(
       color: AppColors.cardBackground,
       margin: const EdgeInsets.only(bottom: 12),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -110,15 +109,16 @@ class DetalleTestScreen extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                      color: AppColors.primary.withOpacity(0.4), width: 1),
+                      color: AppColors.primary.withValues(alpha: 0.4),
+                      width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.folder_outlined,
+                    const Icon(Icons.folder_outlined,
                         size: 12, color: AppColors.primary),
                     const SizedBox(width: 5),
                     Text(
@@ -137,9 +137,7 @@ class DetalleTestScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Text(pregunta.texto,
                 style: GoogleFonts.inter(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: AppColors.textPrimary)),
+                    fontSize: 15, height: 1.5, color: AppColors.textPrimary)),
             const SizedBox(height: 12),
 
             ...pregunta.opciones.map((opcion) {
@@ -150,17 +148,17 @@ class DetalleTestScreen extends StatelessWidget {
               Color borderColor = Colors.grey[700]!;
 
               if (isCorrectOption) {
-                bgColor = AppColors.success.withOpacity(0.2);
+                bgColor = AppColors.success.withValues(alpha: 0.2);
                 borderColor = AppColors.success;
               } else if (isUserAnswer && !isCorrectOption) {
-                bgColor = AppColors.error.withOpacity(0.2);
+                bgColor = AppColors.error.withValues(alpha: 0.2);
                 borderColor = AppColors.error;
               }
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(8),
@@ -196,8 +194,7 @@ class DetalleTestScreen extends StatelessWidget {
                     Expanded(
                         child: Text(opcion.texto,
                             style: GoogleFonts.inter(
-                                fontSize: 13,
-                                color: AppColors.textPrimary))),
+                                fontSize: 13, color: AppColors.textPrimary))),
                     if (isCorrectOption)
                       const Icon(Icons.check_circle,
                           color: AppColors.success, size: 18),

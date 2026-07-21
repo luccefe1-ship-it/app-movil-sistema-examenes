@@ -66,7 +66,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al eliminar el test', style: GoogleFonts.inter()),
+          content:
+              Text('Error al eliminar el test', style: GoogleFonts.inter()),
           backgroundColor: AppColors.error,
         ),
       );
@@ -80,8 +81,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
         backgroundColor: AppColors.cardBackground,
         title: Text('Eliminar test',
             style: GoogleFonts.inter(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary)),
+                fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
         content: Text(
           '¿Eliminar "$nombreTest"?\n\nEsta acción no se puede deshacer.',
           style: GoogleFonts.inter(color: AppColors.textSecondary),
@@ -89,8 +89,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Cancelar', style: TextStyle(color: AppColors.neutral)),
+            child: const Text('Cancelar',
+                style: TextStyle(color: AppColors.neutral)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -124,8 +124,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
             tooltip: 'Estadísticas',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => const EstadisticasScreen()),
+                MaterialPageRoute(builder: (_) => const EstadisticasScreen()),
               );
             },
           ),
@@ -133,21 +132,19 @@ class _HistorialScreenState extends State<HistorialScreen> {
       ),
       body: _isLoading
           ? const Center(
-              child:
-                  CircularProgressIndicator(color: AppColors.primary))
+              child: CircularProgressIndicator(color: AppColors.primary))
           : _historial.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.history,
+                      const Icon(Icons.history,
                           size: 80, color: AppColors.neutral),
                       const SizedBox(height: 16),
                       Text(
                         'No hay tests realizados',
                         style: GoogleFonts.inter(
-                            fontSize: 18,
-                            color: AppColors.textSecondary),
+                            fontSize: 18, color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -206,8 +203,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
       child: Card(
         color: AppColors.cardBackground,
         margin: const EdgeInsets.only(bottom: 12),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: () {
             final temasService = context.read<TemasService>();
@@ -243,8 +239,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                       Text(
                         fechaTexto,
                         style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.textSecondary),
+                            fontSize: 12, color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -254,8 +249,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: puntuacion >= 50
-                                  ? AppColors.success.withOpacity(0.2)
-                                  : AppColors.neutral.withOpacity(0.2),
+                                  ? AppColors.success.withValues(alpha: 0.2)
+                                  : AppColors.neutral.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -270,15 +265,14 @@ class _HistorialScreenState extends State<HistorialScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Icon(Icons.check_circle,
+                          const Icon(Icons.check_circle,
                               size: 16, color: AppColors.success),
                           const SizedBox(width: 4),
                           Text('$correctas',
                               style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: AppColors.success)),
+                                  fontSize: 13, color: AppColors.success)),
                           const SizedBox(width: 8),
-                          Icon(Icons.cancel,
+                          const Icon(Icons.cancel,
                               size: 16, color: AppColors.error),
                           const SizedBox(width: 4),
                           Text('$incorrectas',
@@ -300,7 +294,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                   icon: const Icon(Icons.delete_outline),
                   color: AppColors.error,
                 ),
-                Icon(Icons.chevron_right, color: AppColors.neutral),
+                const Icon(Icons.chevron_right, color: AppColors.neutral),
               ],
             ),
           ),
@@ -332,10 +326,8 @@ class DetalleTestHistorialScreen extends StatelessWidget {
 
     for (var detalle in detalleRespuestas) {
       final d = detalle as Map<String, dynamic>;
-      final preguntaData =
-          d['pregunta'] as Map<String, dynamic>? ?? {};
-      final opcionesData =
-          preguntaData['opciones'] as List<dynamic>? ?? [];
+      final preguntaData = d['pregunta'] as Map<String, dynamic>? ?? {};
+      final opcionesData = preguntaData['opciones'] as List<dynamic>? ?? [];
 
       final temaId = d['temaId'] ?? '';
       final indice = d['indice'] ?? 0;

@@ -67,7 +67,8 @@ class TestService extends ChangeNotifier {
     }
 
     final total = preguntas.length;
-    final penalizacion = incorrectas / 3.0;
+    final penalizacion =
+        incorrectas / 4.0; // Fórmula oficial BOE: 0,60 acierto / 0,15 error
     final aciertosNetos = correctas - penalizacion;
     final puntuacion =
         total > 0 ? (aciertosNetos / total * 100).round().clamp(0, 100) : 0;
@@ -301,7 +302,7 @@ class TestService extends ChangeNotifier {
   // PREGUNTAS ALEATORIAS
   // ─────────────────────────────────────────────
 
-List<PreguntaEmbebida> getRandomPreguntas(
+  List<PreguntaEmbebida> getRandomPreguntas(
     List<PreguntaEmbebida> todasPreguntas,
     int cantidad,
   ) {
@@ -337,8 +338,8 @@ List<PreguntaEmbebida> getRandomPreguntas(
     // 3. Si algún tema no tenía suficientes, completar del pool restante
     if (seleccionadas.length < cantidadFinal) {
       final usadas = seleccionadas.toSet();
-      final restantes = todasPreguntas.where((p) => !usadas.contains(p)).toList()
-        ..shuffle();
+      final restantes =
+          todasPreguntas.where((p) => !usadas.contains(p)).toList()..shuffle();
       seleccionadas.addAll(
         restantes.take(cantidadFinal - seleccionadas.length),
       );
@@ -431,8 +432,7 @@ List<PreguntaEmbebida> getRandomPreguntas(
           indexEnTema: indice,
           texto: texto,
           opciones: opciones,
-          respuestaCorrecta:
-              preguntaData['respuestaCorrecta'] as String? ?? '',
+          respuestaCorrecta: preguntaData['respuestaCorrecta'] as String? ?? '',
           verificada: true,
           explicacion: preguntaData['explicacion'] as String?,
           temaNombre: temaNombre,
@@ -559,6 +559,55 @@ List<PreguntaEmbebida> getRandomPreguntas(
     return _clavesPregunta(p).intersection(claves).isNotEmpty;
   }
 
+  /// Cuenta cuántas veces se ha fallado cada pregunta en todo el historial.
+  /// Devuelve un mapa clave→nº de fallos (claves iguales a las de _clavesDetalle).
+  Future<Map<String, int>> contarFallosHistorial(String usuarioId) async {
+    final conteo = <String, int>{};
+    try {
+      final snapshot = await _firestore
+          .collection('resultados')
+          .where('usuarioId', isEqualTo: usuarioId)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final detalles =
+            doc.data()['detalleRespuestas'] as List<dynamic>? ?? [];
+        for (final d in detalles) {
+          if (d is! Map<String, dynamic>) continue;
+          final estado = (d['estado'] ?? d['resultado'])?.toString();
+          if (estado != 'incorrecta' && estado != 'fallada') continue;
+          for (final clave in _clavesDetalle(d)) {
+            conteo[clave] = (conteo[clave] ?? 0) + 1;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error contando fallos: $e');
+    }
+    return conteo;
+  }
+
+  /// Nº de veces que se ha fallado una pregunta concreta.
+  int fallosDePregunta(PreguntaEmbebida p, Map<String, int> conteo) {
+    int maximo = 0;
+    for (final clave in _clavesPregunta(p)) {
+      final n = conteo[clave] ?? 0;
+      if (n > maximo) maximo = n;
+    }
+    return maximo;
+  }
+
+  /// Mapa listo para la pantalla del test: idPregunta → nº de fallos.
+  Future<Map<String, int>> conteoFallosPara(
+    List<PreguntaEmbebida> preguntas,
+    String usuarioId,
+  ) async {
+    final conteo = await contarFallosHistorial(usuarioId);
+    return {
+      for (final p in preguntas) p.id: fallosDePregunta(p, conteo),
+    };
+  }
+
   // ─────────────────────────────────────────────
   // MÉTODOS PARA EXPLICACION_MODAL
   // ─────────────────────────────────────────────
@@ -585,8 +634,7 @@ List<PreguntaEmbebida> getRandomPreguntas(
         if (docPadre.exists) {
           final docPadreDigital = docPadre.data()?['documentoDigital'];
           if (docPadreDigital != null) {
-            final textoCompleto =
-                docPadreDigital['textoExtraido'] as String?;
+            final textoCompleto = docPadreDigital['textoExtraido'] as String?;
             if (textoCompleto != null && textoCompleto.isNotEmpty) {
               // Intentar extraer solo la sección del subtema
               final nombreSubtema = data['nombre'] as String? ?? '';
@@ -860,7 +908,8 @@ List<PreguntaEmbebida> getRandomPreguntas(
       debugPrint('Error guardando explicación: $e');
     }
   }
-Future<void> guardarSubrayado({
+
+  Future<void> guardarSubrayado({
     required String userId,
     required String preguntaTexto,
     required String html,
@@ -917,6 +966,54 @@ Future<void> guardarSubrayado({
       debugPrint('Error eliminando explicación: $e');
     }
   }
+
+  // ─────────────────────────────────────────────
+  // MI EXPLICACIÓN (redactada por el usuario)
+  // ─────────────────────────────────────────────
+
+  Future<String?> obtenerExplicacionPropia(
+      String userId, String preguntaTexto) async {
+    try {
+      final docId = _generarDocId(userId, preguntaTexto);
+      final doc =
+          await _firestore.collection('explicacionesPropias').doc(docId).get();
+      if (doc.exists) {
+        return doc.data()?['texto'] as String?;
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo explicación propia: $e');
+    }
+    return null;
+  }
+
+  Future<void> guardarExplicacionPropia(
+      String preguntaTexto, String explicacion,
+      {required String userId}) async {
+    try {
+      final docId = _generarDocId(userId, preguntaTexto);
+      await _firestore.collection('explicacionesPropias').doc(docId).set({
+        'usuarioId': userId,
+        'preguntaTexto': preguntaTexto,
+        'texto': explicacion,
+        'fecha': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error guardando explicación propia: $e');
+    }
+  }
+
+  Future<void> eliminarExplicacionPropia({
+    required String userId,
+    required String preguntaTexto,
+  }) async {
+    try {
+      final docId = _generarDocId(userId, preguntaTexto);
+      await _firestore.collection('explicacionesPropias').doc(docId).delete();
+    } catch (e) {
+      debugPrint('Error eliminando explicación propia: $e');
+    }
+  }
+
   Future<String?> obtenerClaudeApiKey() async {
     try {
       final doc = await _firestore.collection('config').doc('keys').get();

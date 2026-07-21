@@ -55,16 +55,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final authService = context.read<AuthService>();
     final prefs = await SharedPreferences.getInstance();
-        if (_recordarDatos) {
-          await prefs.setString('saved_email', _emailController.text.trim());
-          await prefs.setString('saved_password', _passwordController.text);
-          await prefs.setBool('recordar_datos', true);
-        } else {
-          await prefs.remove('saved_email');
-          await prefs.remove('saved_password');
-          await prefs.setBool('recordar_datos', false);
-        }
-        final success = await authService.login(
+    if (_recordarDatos) {
+      await prefs.setString('saved_email', _emailController.text.trim());
+      await prefs.setString('saved_password', _passwordController.text);
+      await prefs.setBool('recordar_datos', true);
+    } else {
+      await prefs.remove('saved_email');
+      await prefs.remove('saved_password');
+      await prefs.setBool('recordar_datos', false);
+    }
+    final success = await authService.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
@@ -102,13 +102,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo o título
-                  Icon(
+                  const Icon(
                     Icons.school,
                     size: 80,
                     color: AppColors.primary,
                   ),
                   const SizedBox(height: 24),
-                  
+
                   Text(
                     'Sistema de Exámenes',
                     textAlign: TextAlign.center,
@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   Text(
                     'Prepárate para tu examen',
                     textAlign: TextAlign.center,
@@ -129,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  
+
                   // Campo Email
                   TextFormField(
                     controller: _emailController,
@@ -138,16 +138,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: InputDecoration(
                       hintText: 'Email',
                       hintStyle: const TextStyle(color: Colors.black45),
-                      prefixIcon: const Icon(Icons.email_outlined, color: Colors.black54),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.email_outlined,
+                          color: Colors.black54),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.white,
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -160,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Campo Contraseña
                   TextFormField(
                     controller: _passwordController,
@@ -169,7 +173,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: InputDecoration(
                       hintText: 'Contraseña',
                       hintStyle: const TextStyle(color: Colors.black45),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.black54),
+                      prefixIcon:
+                          const Icon(Icons.lock_outline, color: Colors.black54),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -181,15 +186,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           setState(() => _obscurePassword = !_obscurePassword);
                         },
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.white,
                       floatingLabelBehavior: FloatingLabelBehavior.auto,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -201,18 +209,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                                    Row(
+                  Row(
                     children: [
                       Checkbox(
                         value: _recordarDatos,
-                        onChanged: (v) => setState(() => _recordarDatos = v ?? false),
+                        onChanged: (v) =>
+                            setState(() => _recordarDatos = v ?? false),
                         activeColor: AppColors.primary,
                       ),
-                      Text('Recordar datos', style: GoogleFonts.inter(fontSize: 14, color: Colors.white)),
+                      Text('Recordar datos',
+                          style: GoogleFonts.inter(
+                              fontSize: 14, color: Colors.white)),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Botón Login
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
@@ -231,7 +242,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : Text(

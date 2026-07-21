@@ -56,6 +56,7 @@ class PreguntaEmbebida {
   final List<OpcionPregunta> opciones;
   final String respuestaCorrecta;
   final bool verificada;
+  final bool esOficial; // 🆕 marcada como oficial de examen en la plataforma
   final String? explicacion;
   final String? temaNombre; // Nombre del tema padre general
 
@@ -66,6 +67,7 @@ class PreguntaEmbebida {
     required this.opciones,
     required this.respuestaCorrecta,
     this.verificada = false,
+    this.esOficial = false,
     this.explicacion,
     this.temaNombre,
   });
@@ -90,6 +92,7 @@ class PreguntaEmbebida {
       opciones: opciones,
       respuestaCorrecta: respuestaCorrecta,
       verificada: verificada,
+      esOficial: esOficial,
       explicacion: explicacion,
       temaNombre: nombre,
     );
@@ -116,6 +119,7 @@ class PreguntaEmbebida {
       opciones: opciones,
       respuestaCorrecta: map['respuestaCorrecta'] ?? '',
       verificada: map['verificada'] == true,
+      esOficial: map['esOficial'] == true, // 🆕
       explicacion: map['explicacion'],
       temaNombre: map['temaNombre'],
     );
