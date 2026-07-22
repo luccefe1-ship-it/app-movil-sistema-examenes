@@ -49,6 +49,12 @@ class _ExplicacionModalState extends State<ExplicacionModal>
   bool _editandoIA = false;
   late TextEditingController _iaEditController;
 
+  // Mis Notas
+  bool _loadingNota = true;
+  bool _tieneNota = false;
+  bool _guardandoNota = false;
+  late TextEditingController _notaController;
+
   final GlobalKey _firstHighlightKey = GlobalKey();
 
   @override
@@ -56,6 +62,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _iaEditController = TextEditingController();
+    _notaController = TextEditingController();
     _cargarExplicaciones();
   }
 
@@ -64,6 +71,7 @@ class _ExplicacionModalState extends State<ExplicacionModal>
     _tabController.dispose();
     _searchController.dispose();
     _iaEditController.dispose();
+    _notaController.dispose();
     super.dispose();
   }
 
@@ -102,6 +110,20 @@ class _ExplicacionModalState extends State<ExplicacionModal>
     } catch (e) {
       if (mounted) setState(() => _loadingGemini = false);
     }
+
+    try {
+      final nota = await widget.testService
+          .obtenerExplicacionPropia(widget.userId, widget.pregunta.texto);
+      if (mounted) {
+        setState(() {
+          _tieneNota = nota != null && nota.isNotEmpty;
+          if (nota != null) _notaController.text = nota;
+          _loadingNota = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingNota = false);
+    }
   }
 
   void _scrollToFirstHighlight() {
@@ -132,8 +154,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildTemaDigitalTab(),
                 _buildGeminiTab(),
+                _buildNotasTab(),
               ],
             ),
           ),
@@ -183,8 +205,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
         tabs: [
           Tab(
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Tema Digital'),
-              if (_tieneSubrayados) ...[
+              const Text('Explicación IA'),
+              if (_tieneGemini) ...[
                 const SizedBox(width: 6),
                 _dot(AppColors.success),
               ],
@@ -192,8 +214,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
           ),
           Tab(
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Explicación IA'),
-              if (_tieneGemini) ...[
+              const Text('Mis Notas'),
+              if (_tieneNota) ...[
                 const SizedBox(width: 6),
                 _dot(AppColors.success),
               ],
@@ -831,6 +853,146 @@ class _ExplicacionModalState extends State<ExplicacionModal>
     }
   }
 
+  // ─── TAB MIS NOTAS ───────────────────────────────────
+
+  Widget _buildNotasTab() {
+    if (_loadingNota) return _loading('Cargando tus notas...');
+    return Column(children: [
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: TextField(
+            controller: _notaController,
+            maxLines: null,
+            expands: true,
+            textAlignVertical: TextAlignVertical.top,
+            style: GoogleFonts.inter(
+                fontSize: 14, height: 1.7, color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Escribe aquí tus notas sobre esta pregunta…',
+              hintStyle: GoogleFonts.inter(color: AppColors.textSecondary),
+              filled: true,
+              fillColor: AppColors.background,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          border: Border(top: BorderSide(color: Colors.grey.shade800)),
+        ),
+        child: Row(children: [
+          if (_tieneNota)
+            OutlinedButton.icon(
+              onPressed: _borrarNota,
+              icon: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
+              label: Text('Borrar',
+                  style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red)),
+              style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red)),
+            ),
+          const Spacer(),
+          ElevatedButton.icon(
+            onPressed: _guardandoNota ? null : _guardarNota,
+            icon: const Icon(Icons.save, size: 16),
+            label: Text(_guardandoNota ? 'Guardando…' : 'Guardar',
+                style: GoogleFonts.inter(
+                    fontSize: 13, fontWeight: FontWeight.w600)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ]),
+      ),
+    ]);
+  }
+
+  Future<void> _guardarNota() async {
+    final texto = _notaController.text.trim();
+    setState(() => _guardandoNota = true);
+    try {
+      if (texto.isEmpty) {
+        await widget.testService.eliminarExplicacionPropia(
+          userId: widget.userId,
+          preguntaTexto: widget.pregunta.texto,
+        );
+      } else {
+        await widget.testService.guardarExplicacionPropia(
+          widget.pregunta.texto,
+          texto,
+          userId: widget.userId,
+        );
+      }
+      if (mounted) {
+        setState(() {
+          _tieneNota = texto.isNotEmpty;
+          _guardandoNota = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('✅ Notas guardadas'),
+              backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _guardandoNota = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _borrarNota() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: Text('Borrar notas',
+            style: GoogleFonts.inter(color: AppColors.textPrimary)),
+        content: Text('¿Eliminar tus notas de esta pregunta?',
+            style: GoogleFonts.inter(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Borrar', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    await widget.testService.eliminarExplicacionPropia(
+      userId: widget.userId,
+      preguntaTexto: widget.pregunta.texto,
+    );
+    if (mounted) {
+      setState(() {
+        _notaController.clear();
+        _tieneNota = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('✅ Notas eliminadas'),
+            backgroundColor: Colors.green),
+      );
+    }
+  }
+
   Future<void> _generarExplicacionIA() async {
     setState(() => _generandoIA = true);
     try {
@@ -850,17 +1012,24 @@ class _ExplicacionModalState extends State<ExplicacionModal>
               orElse: () => widget.pregunta.opciones.first)
           : null;
 
+      final esFallo = respUsuario != null && respUsuario.letra != correcta.letra;
+
       final prompt =
-          'Eres un experto en Derecho español y oposiciones a la justicia. '
-          'Analiza esta pregunta citando la legislación española vigente aplicable.\n\n'
+          'Eres profesor de oposiciones a la Administración de Justicia en España. Le explicas una pregunta a un alumno, de viva voz.\n\n'
           'Pregunta: ${widget.pregunta.texto}\n'
           'Opciones:\n$opciones\n'
-          'Respuesta del alumno: ${respUsuario != null ? "${respUsuario.letra}) ${respUsuario.texto}" : "No disponible"}\n'
-          'Respuesta correcta: ${correcta.letra}) ${correcta.texto}\n\n'
-          'Responde en dos partes:\n'
-          '1. POR QUÉ ES INCORRECTA: explica el error del alumno citando el artículo o norma que lo contradice.\n'
-          '2. POR QUÉ ES CORRECTA: justifica la respuesta correcta con el fundamento legal exacto (artículo, ley, código).\n'
-          'Sé preciso y conciso. Máximo 8 líneas.';
+          'Opción marcada por el alumno: ${respUsuario != null ? "${respUsuario.letra}) ${respUsuario.texto}" : "ninguna"}\n'
+          'Opción correcta: ${correcta.letra}) ${correcta.texto}\n\n'
+          'Escribe dos párrafos cortos y seguidos:\n'
+          '${esFallo ? "Primero, por qué la opción que marcó el alumno no es válida.\n" : ""}'
+          '${esFallo ? "Después, " : ""}por qué la opción correcta sí lo es, citando el artículo y la norma concretos.\n\n'
+          'REGLAS DE FORMATO (obligatorias):\n'
+          '- Texto plano. Nada de asteriscos, almohadillas, guiones de lista, negritas ni ningún marcado.\n'
+          '- Sin títulos, sin encabezados, sin numeración.\n'
+          '- No repitas el enunciado ni las opciones.\n'
+          '- Sin introducción, sin resumen final, sin frases de cortesía.\n'
+          '- Lenguaje natural, sencillo y directo.\n'
+          '- Máximo 120 palabras en total.';
 
       final response = await http.post(
         Uri.parse('https://api.anthropic.com/v1/messages'),
@@ -870,8 +1039,8 @@ class _ExplicacionModalState extends State<ExplicacionModal>
           'anthropic-version': '2023-06-01',
         },
         body: jsonEncode({
-          'model': 'claude-haiku-4-5-20251001',
-          'max_tokens': 500,
+          'model': 'claude-opus-4-8',
+          'max_tokens': 1000,
           'messages': [
             {'role': 'user', 'content': prompt}
           ],
